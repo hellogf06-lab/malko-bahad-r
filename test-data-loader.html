@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hukuk Büro Takip - Test Veri Yükleyici</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Veri Yükleyici</h1>
+        <p>Uygulamayı kapsamlı test etmek için gerçekçi sample veriler yükleyin.</p>
+        
+        <div class="info">
+            <strong>📋 Yüklenecek Veriler:</strong>
+            <ul>
+                <li>15 Kurum Dosyası (Ödenen/Ödenmemiş)</li>
+                <li>20 Müvekkil Dosyası (Farklı kategorilerde)</li>
+                <li>30 Gider Kaydı (Son 6 ay)</li>
+                <li>6 Dosya Kategorisi</li>
+                <li>Geçmiş 6 aylık veri (tahmin testi için)</li>
+            </ul>
+        </div>
+
+        <div class="stats" id="stats" style="display:none;">
+            <div class="stat">
+                <div class="stat-number" id="kurumCount">0</div>
+                <div class="stat-label">Kurum Dosyası</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="dosyaCount">0</div>
+                <div class="stat-label">Müvekkil Dosyası</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="giderCount">0</div>
+                <div class="stat-label">Gider Kaydı</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="categoryCount">0</div>
+                <div class="stat-label">Kategori</div>
+            </div>
+        </div>
+
+        <button onclick="loadTestData()">📥 Test Verilerini Yükle</button>
+        <button onclick="clearAllData()" style="background: #ef4444;">🗑️ Tüm Verileri Temizle</button>
+        <button onclick="window.location.href='http://localhost:3001'" style="background: #10b981;">🚀 Uygulamayı Aç</button>
+        
+        <div class="success" id="successMessage">
+            ✅ Test verileri başarıyla yüklendi! Artık tüm özellikleri test edebilirsiniz.
+        </div>
+    </div>
+
+    <script>
+        function generateTestData() {
+            const today = new Date();
+            
+            // Kategoriler
+            const categories = [
+                { id: '1', name: 'Boşanma', color: '#ef4444', icon: 'Folder', createdAt: new Date().toISOString() },
+                { id: '2', name: 'Miras', color: '#f59e0b', icon: 'Folder', createdAt: new Date().toISOString() },
+                { id: '3', name: 'Ticari', color: '#3b82f6', icon: 'Folder', createdAt: new Date().toISOString() },
+                { id: '4', name: 'Ceza', color: '#8b5cf6', icon: 'Folder', createdAt: new Date().toISOString() },
+                { id: '5', name: 'İdare', color: '#10b981', icon: 'Folder', createdAt: new Date().toISOString() },
+                { id: '6', name: 'İcra', color: '#ec4899', icon: 'Folder', createdAt: new Date().toISOString() },
+            ];
+
+            // Kurum Dosyaları (gelir için)
+            const kurumDosyalari = [];
+            for (let i = 1; i <= 15; i++) {
+                const monthsAgo = Math.floor(Math.random() * 6);
+                const date = new Date(today);
+                date.setMonth(date.getMonth() - monthsAgo);
+                
+                const isPaid = Math.random() > 0.3;
+                const amount = (Math.random() * 50000 + 10000).toFixed(2);
+                
+                kurumDosyalari.push({
+                    id: Date.now() + i,
+                    kurum_adi: ['Adalet Bakanlığı', 'İçişleri Bakanlığı', 'Maliye Bakanlığı', 'SGK', 'Belediye'][Math.floor(Math.random() * 5)],
+                    dosya_no: `2024/KRM/${String(i).padStart(3, '0')}`,
+                    konu: 'Avukatlık Ücreti Hakediş',
+                    net_hakedis: parseFloat(amount),
+                    ucret: parseFloat(amount),
+                    odendi: isPaid,
+                    odenmeDurumu: isPaid ? 'Ödendi' : 'Bekliyor',
+                    created_at: date.toISOString(),
+                    tarih: date.toISOString().split('T')[0],
+                    odenenTarih: isPaid ? date.toISOString().split('T')[0] : null,
+                    notes: `Test veri ${i}`
+                });
+            }
+
+            // Müvekkil Dosyaları
+            const dosyalar = [];
+            const isimler = ['Ahmet Yılmaz', 'Ayşe Demir', 'Mehmet Kaya', 'Fatma Şahin', 'Ali Çelik', 'Zeynep Arslan', 
+                           'Hasan Koç', 'Elif Yıldız', 'Mustafa Aydın', 'Selin Öztürk', 'Burak Aslan', 'Deniz Kurt',
+                           'Cem Güneş', 'Ebru Polat', 'Onur Tekin', 'Gizem Vural', 'Serkan Özkan', 'Merve Kılıç',
+                           'Oğuz Doğan', 'Pınar Erdoğan'];
+            
+            for (let i = 1; i <= 20; i++) {
+                const daysAgo = Math.floor(Math.random() * 180);
+                const date = new Date(today);
+                date.setDate(date.getDate() - daysAgo);
+                
+                const durusmaDays = Math.floor(Math.random() * 60) - 10; // Some in past, some in future
+                const durusmaDate = new Date(today);
+                durusmaDate.setDate(durusmaDate.getDate() + durusmaDays);
+                
+                const category = categories[Math.floor(Math.random() * categories.length)];
+                
+                dosyalar.push({
+                    id: Date.now() + 100 + i,
+                    dosya_no: `2024/${String(i).padStart(4, '0')}`,
+                    muvekkil_adi: isimler[i - 1],
+                    karsi_taraf: isimler[(i + 10) % 20],
+                    mahkeme: ['İstanbul 1. Aile Mahkemesi', 'Ankara 2. Sulh Hukuk', 'İzmir 5. Asliye Hukuk', 'Bursa 3. İcra'][Math.floor(Math.random() * 4)],
+                    kategori: category.name,
+                    durum: ['Devam Ediyor', 'Kazanıldı', 'Kaybedildi', 'Sulh'][Math.floor(Math.random() * 4)],
+                    durusma_tarihi: durusmaDate.toISOString().split('T')[0],
+                    created_at: date.toISOString(),
+                    notes: `${category.name} davası test verisi`
+                });
+            }
+
+            // Giderler (son 6 ay)
+            const giderler = [];
+            const giderKategorileri = ['Kırtasiye', 'Kira', 'Elektrik', 'Su', 'İnternet', 'Telefon', 'Harç', 'Posta', 'Ulaşım', 'Yemek'];
+            
+            for (let i = 1; i <= 30; i++) {
+                const monthsAgo = Math.floor(Math.random() * 6);
+                const date = new Date(today);
+                date.setMonth(date.getMonth() - monthsAgo);
+                date.setDate(Math.floor(Math.random() * 28) + 1);
+                
+                giderler.push({
+                    id: Date.now() + 200 + i,
+                    kategori: giderKategorileri[Math.floor(Math.random() * giderKategorileri.length)],
+                    tutar: (Math.random() * 5000 + 100).toFixed(2),
+                    tarih: date.toISOString().split('T')[0],
+                    aciklama: `Test gider kaydı ${i}`,
+                    created_at: date.toISOString()
+                });
+            }
+
+            return { categories, kurumDosyalari, dosyalar, giderler };
+        }
+
+        function loadTestData() {
+            const data = generateTestData();
+            
+            // LocalStorage'a kaydet
+            localStorage.setItem('fileCategories', JSON.stringify(data.categories));
+            localStorage.setItem('kurumDosyalari', JSON.stringify(data.kurumDosyalari));
+            localStorage.setItem('dosyalar', JSON.stringify(data.dosyalar));
+            localStorage.setItem('giderler', JSON.stringify(data.giderler));
+            
+            // İstatistikleri göster
+            document.getElementById('stats').style.display = 'grid';
+            document.getElementById('kurumCount').textContent = data.kurumDosyalari.length;
+            document.getElementById('dosyaCount').textContent = data.dosyalar.length;
+            document.getElementById('giderCount').textContent = data.giderler.length;
+            document.getElementById('categoryCount').textContent = data.categories.length;
+            
+            // Başarı mesajını göster
+            document.getElementById('successMessage').style.display = 'block';
+            
+            console.log('✅ Test verileri yüklendi:', data);
+        }
+
+        function clearAllData() {
+            if (confirm('Tüm verileri silmek istediğinizden emin misiniz?')) {
+                localStorage.clear();
+                document.getElementById('stats').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+                alert('Tüm veriler temizlendi!');
+            }
+        }
+
+        // Sayfa yüklendiğinde mevcut veri durumunu göster
+        window.onload = function() {
+            const kurum = JSON.parse(localStorage.getItem('kurumDosyalari') || '[]');
+            const dosya = JSON.parse(localStorage.getItem('dosyalar') || '[]');
+            const gider = JSON.parse(localStorage.getItem('giderler') || '[]');
+            const kategori = JSON.parse(localStorage.getItem('fileCategories') || '[]');
+            
+            if (kurum.length > 0 || dosya.length > 0 || gider.length > 0) {
+                document.getElementById('stats').style.display = 'grid';
+                document.getElementById('kurumCount').textContent = kurum.length;
+                document.getElementById('dosyaCount').textContent = dosya.length;
+                document.getElementById('giderCount').textContent = gider.length;
+                document.getElementById('categoryCount').textContent = kategori.length;
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1146 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Download, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, FileDown, ChevronUp, ChevronDown, X, Filter } from 'lucide-react';
+import * as XLSX from 'xlsx';
+
+// Components
+import Header from './components/Header';
+import Modal from './components/Modal';
+import Alert from './components/Alert';
+import SummaryCard from './components/SummaryCard';
+import SimpleBarChart from './components/SimpleBarChart';
+import PieChart from './components/PieChart';
+import KPICard from './components/KPICard';
+import SortableHeader from './components/SortableHeader';
+import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table';
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { Label } from './components/ui/label';
+
+// Form Components
+import FileForm from './components/forms/FileForm';
+import LegalExpenseForm from './components/forms/LegalExpenseForm';
+import InstitutionForm from './components/forms/InstitutionForm';
+import InstitutionExpenseForm from './components/forms/InstitutionExpenseForm';
+import ExpenseForm from './components/forms/ExpenseForm';
+
+// Table Components
+import Dosyalar from './components/Dosyalar';
+import Giderler from './components/Giderler';
+import Kurum from './components/Kurum';
+import { HearingReminders } from './components/HearingReminders';
+
+// Hooks
+import { useAllDataQueries } from './hooks/useQuery';
+import { useAddData, useUpdateData, useDeleteData, useTogglePaid } from './hooks/useQuery';
+import { useCalculations } from './hooks/useCalculations';
+import { usePDFExport } from './hooks/usePDFExport';
+
+// Utils
+import { formatPara, searchInObject, sortData, isDateInRange } from './utils/helpers.ts';
+import { EXPENSE_CATEGORIES, STORAGE_KEY, COLORS } from './utils/constants.ts';
+
+// --- ANA UYGULAMA ---
+const App = () => {
+  const [activeTab, setActiveTab] = useState('kurum'); 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Modals
+  const [showNewFileModal, setShowNewFileModal] = useState(false);
+  const [showNewLegalExpenseModal, setShowNewLegalExpenseModal] = useState(false);
+  const [showNewInstitutionModal, setShowNewInstitutionModal] = useState(false);
+  const [showNewInstitutionExpenseModal, setShowNewInstitutionExpenseModal] = useState(false);
+  const [showNewExpenseModal, setShowNewExpenseModal] = useState(false);
+  
+  const [detailModal, setDetailModal] = useState({ isOpen: false, item: null, type: null });
+  const [editMode, setEditMode] = useState(false);
+  
+  const [alert, setAlert] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Filtreleme & Arama
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
+  const [statusFilter, setStatusFilter] = useState('all'); // all, paid, unpaid
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  
+  // Sıralama
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  
+  // Toplu İşlemler
+  const [selectedItems, setSelectedItems] = useState([]);
+  
+  // Ayarlar
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('hukuk_settings');
+    return saved ? JSON.parse(saved) : {
+      firmName: 'MALKOÇ & BAHADIR HUKUK VE DANIŞMANLIK',
+      logo: '',
+      currency: 'TRY',
+      kdvRate: 20,
+      notificationDays: 7
+    };
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('hukuk_settings', JSON.stringify(settings));
+  }, [settings]);
+
+  // React Query ile veri çekme
+  const { 
+    dosyalar, 
+    kurumDosyalari, 
+    takipMasraflari, 
+    kurumMasraflari, 
+    giderler,
+    isLoading,
+    isError,
+    error
+  } = useAllDataQueries();
+
+  // Edit mode için state (form componentleri kendi state'lerini yönetecek)
+  const [editingItem, setEditingItem] = useState(null);
+
+  // React Query Mutations
+  const addFileMutation = useAddData('dosyalar');
+  const updateFileMutation = useUpdateData('dosyalar');
+  const deleteFileMutation = useDeleteData('dosyalar');
+  
+  const addLegalExpenseMutation = useAddData('takipMasraflari');
+  const updateLegalExpenseMutation = useUpdateData('takipMasraflari');
+  const deleteLegalExpenseMutation = useDeleteData('takipMasraflari');
+  const toggleLegalExpenseMutation = useTogglePaid('takipMasraflari');
+  
+  const addInstitutionMutation = useAddData('kurumDosyalari');
+  const updateInstitutionMutation = useUpdateData('kurumDosyalari');
+  const deleteInstitutionMutation = useDeleteData('kurumDosyalari');
+  const toggleInstitutionMutation = useTogglePaid('kurumDosyalari');
+  
+  const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
+  const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');
+  const deleteInstitutionExpenseMutation = useDeleteData('kurumMasraflari');
+  const toggleInstitutionExpenseMutation = useTogglePaid('kurumMasraflari');
+  
+  const addExpenseMutation = useAddData('giderler');
+  const updateExpenseMutation = useUpdateData('giderler');
+  const deleteExpenseMutation = useDeleteData('giderler');
+
+  // --- HESAPLAMALAR ---
+  const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
+  const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
+
+  // Bildirim kontrolü - akıllı bildirimler
+  useEffect(() => {
+    const checkNotifications = () => {
+      const notifs = [];
+      const today = new Date();
+      const notifDays = settings.notificationDays || 7;
+      
+      // 1. KÂR/ZARAR DURUMU - En önemli bildirim
+      const toplamGelir = hesaplamalar.toplamTahsilat + hesaplamalar.toplamKurumHakedis;
+      const toplamGider = hesaplamalar.toplamGiderler + hesaplamalar.toplamTakipMasraflari + hesaplamalar.toplamKurumMasraflari;
+      const netKar = toplamGelir - toplamGider;
+      
+      if (netKar > 0) {
+        notifs.push({ 
+          type: 'success', 
+          message: `✅ Kâr Durumu: ${formatPara(netKar, settings.currency)} (Gelir: ${formatPara(toplamGelir, settings.currency)}, Gider: ${formatPara(toplamGider, settings.currency)})`,
+          priority: 1
+        });
+      } else if (netKar < 0) {
+        notifs.push({ 
+          type: 'error', 
+          message: `⚠️ ZARAR DURUMU: ${formatPara(Math.abs(netKar), settings.currency)} (Gelir: ${formatPara(toplamGelir, settings.currency)}, Gider: ${formatPara(toplamGider, settings.currency)})`,
+          priority: 1
+        });
+      } else {
+        notifs.push({ 
+          type: 'info', 
+          message: `⚖️ Başa Baş Durum (Gelir = Gider: ${formatPara(toplamGelir, settings.currency)})`,
+          priority: 1
+        });
+      }
+      
+      // 2. BÜYÜK ÖDENMEMİŞ HAKEDİŞLER (50.000 TL üzeri)
+      const buyukHakedisler = kurumDosyalari.filter(k => !k.odendi && (k.net_hakedis || 0) > 50000);
+      if (buyukHakedisler.length > 0) {
+        const toplam = buyukHakedisler.reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
+        notifs.push({ 
+          type: 'warning', 
+          message: `💰 ${buyukHakedisler.length} adet büyük ödenmemiş hakediş (Toplam: ${formatPara(toplam, settings.currency)})`,
+          priority: 2
+        });
+      }
+      
+      // 3. TOPLAM ÖDENMEMİŞ HAKEDİŞLER
+      const odenmemisHakedisler = kurumDosyalari.filter(k => !k.odendi);
+      if (odenmemisHakedisler.length > 0) {
+        const toplam = odenmemisHakedisler.reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
+        notifs.push({ 
+          type: 'info', 
+          message: `📋 ${odenmemisHakedisler.length} ödenmemiş hakediş (${formatPara(toplam, settings.currency)})`,
+          priority: 3
+        });
+      }
+      
+      // 4. YÜKSEK GİDERLER (10.000 TL üzeri)
+      const yuksekGiderler = giderler.filter(g => parseFloat(g.tutar || 0) > 10000);
+      if (yuksekGiderler.length > 0) {
+        const toplam = yuksekGiderler.reduce((sum, g) => sum + parseFloat(g.tutar || 0), 0);
+        notifs.push({ 
+          type: 'warning', 
+          message: `💸 ${yuksekGiderler.length} yüksek gider (${formatPara(toplam, settings.currency)})`,
+          priority: 4
+        });
+      }
+      
+      // 5. ÖDENMEMİŞ MASRAFLAR
+      const odenmemisMasraflar = [...takipMasraflari, ...kurumMasraflari].filter(m => !m.odendi);
+      if (odenmemisMasraflar.length > 0) {
+        const toplam = odenmemisMasraflar.reduce((sum, m) => sum + parseFloat(m.tutar || 0), 0);
+        notifs.push({ 
+          type: 'warning', 
+          message: `📌 ${odenmemisMasraflar.length} ödenmemiş masraf (${formatPara(toplam, settings.currency)})`,
+          priority: 5
+        });
+      }
+      
+      // 6. AKTİF DOSYA SAYISI
+      const aktifDosyalar = dosyalar.length + kurumDosyalari.length;
+      notifs.push({ 
+        type: 'info', 
+        message: `📁 ${aktifDosyalar} aktif dosya (${dosyalar.length} takip + ${kurumDosyalari.length} kurum)`,
+        priority: 6
+      });
+      
+      // Priority'e göre sırala (düşük sayı = yüksek öncelik)
+      notifs.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+      
+      setNotifications(notifs);
+    };
+    
+    if (!isLoading && !isError && hesaplamalar) {
+      checkNotifications();
+    }
+  }, [kurumDosyalari, takipMasraflari, kurumMasraflari, giderler, dosyalar, hesaplamalar, settings, isLoading, isError]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-lg text-indigo-600">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin mx-auto" />
+          <p className="mt-4">Veriler yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center h-screen text-lg text-red-600">
+        <div className="text-center p-6 bg-red-100 rounded-xl">
+          <p className="font-bold mb-2">❌ Hata Oluştu</p>
+          <p>{error?.message || 'Veriler yüklenirken bir hata oluştu'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- FORM ACTIONS (React Hook Form ile) ---
+  const handleFileSubmit = async (data) => {
+    try {
+      if (editingItem) {
+        await updateFileMutation.mutateAsync({ id: editingItem.id, data });
+        setAlert({type:'success', message:'Dosya güncellendi'});
+      } else {
+        await addFileMutation.mutateAsync(data);
+        setAlert({type:'success', message:'Dosya eklendi'});
+      }
+      setShowNewFileModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      setAlert({type:'error', message: error.message || 'İşlem başarısız'});
+    }
+  };
+
+  const handleLegalExpenseSubmit = async (data) => {
+    try {
+      const processedData = {
+        ...data,
+        dosyaId: parseInt(data.dosyaId),
+        odendi: editingItem?.odendi || false
+      };
+      
+      if (editingItem) {
+        await updateLegalExpenseMutation.mutateAsync({ id: editingItem.id, data: processedData });
+        setAlert({type:'success', message:'Masraf güncellendi'});
+      } else {
+        await addLegalExpenseMutation.mutateAsync(processedData);
+        setAlert({type:'success', message:'Masraf eklendi'});
+      }
+      setShowNewLegalExpenseModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      setAlert({type:'error', message: error.message || 'İşlem başarısız'});
+    }
+  };
+
+  const handleInstitutionSubmit = async (data) => {
+    try {
+      const processedData = {
+        ...data,
+        odendi: editingItem?.odendi || false
+      };
+      
+      if (editingItem) {
+        await updateInstitutionMutation.mutateAsync({ id: editingItem.id, data: processedData });
+        setAlert({type:'success', message:'Tahsilat güncellendi'});
+      } else {
+        await addInstitutionMutation.mutateAsync(processedData);
+        setAlert({type:'success', message:'Tahsilat eklendi'});
+      }
+      setShowNewInstitutionModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      setAlert({type:'error', message: error.message || 'İşlem başarısız'});
+    }
+  };
+
+  const handleInstitutionExpenseSubmit = async (data) => {
+    try {
+      const processedData = {
+        ...data,
+        odendi: editingItem?.odendi || false
+      };
+      
+      if (editingItem) {
+        await updateInstitutionExpenseMutation.mutateAsync({ id: editingItem.id, data: processedData });
+        setAlert({type:'success', message:'Masraf güncellendi'});
+      } else {
+        await addInstitutionExpenseMutation.mutateAsync(processedData);
+        setAlert({type:'success', message:'Masraf eklendi'});
+      }
+      setShowNewInstitutionExpenseModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      setAlert({type:'error', message: error.message || 'İşlem başarısız'});
+    }
+  };
+
+  const handleExpenseSubmit = async (data) => {
+    try {
+      if (editingItem) {
+        await updateExpenseMutation.mutateAsync({ id: editingItem.id, data });
+        setAlert({type:'success', message:'Gider güncellendi'});
+      } else {
+        await addExpenseMutation.mutateAsync(data);
+        setAlert({type:'success', message:'Gider eklendi'});
+      }
+      setShowNewExpenseModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      setAlert({type:'error', message: error.message || 'İşlem başarısız'});
+    }
+  };
+
+  const openDetailModal = (item, type) => {
+    setDetailModal({ isOpen: true, item, type });
+  };
+
+  const closeDetailModal = () => {
+    setDetailModal({ isOpen: false, item: null, type: null });
+  };
+
+  const openEditModal = (item, type) => {
+    setEditingItem(item);
+    if (type === 'file') {
+      setShowNewFileModal(true);
+    } else if (type === 'legalExpense') {
+      setShowNewLegalExpenseModal(true);
+    } else if (type === 'institution') {
+      setShowNewInstitutionModal(true);
+    } else if (type === 'institutionExpense') {
+      setShowNewInstitutionExpenseModal(true);
+    } else if (type === 'expense') {
+      setShowNewExpenseModal(true);
+    }
+  };
+
+  // Sıralama fonksiyonu
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Toplu işlemler
+  const handleSelectItem = (id) => {
+    setSelectedItems(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (items) => {
+    if (selectedItems.length === items.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(items.map(i => i.id));
+    }
+  };
+
+  const handleBulkDelete = async (type) => {
+    if (selectedItems.length === 0) return;
+    if (!window.confirm(`${selectedItems.length} kayıt silinecek. Emin misiniz?`)) return;
+    
+    const count = selectedItems.length;
+    for (const id of selectedItems) {
+      if (type === 'file') await deleteFileMutation.mutateAsync(id);
+      else if (type === 'legalExpense') await deleteLegalExpenseMutation.mutateAsync(id);
+      else if (type === 'institution') await deleteInstitutionMutation.mutateAsync(id);
+      else if (type === 'institutionExpense') await deleteInstitutionExpenseMutation.mutateAsync(id);
+      else if (type === 'expense') await deleteExpenseMutation.mutateAsync(id);
+    }
+    
+    setSelectedItems([]);
+    setAlert({ type: 'success', message: `${count} kayıt silindi` });
+  };
+
+  const handleBulkExport = (data, filename) => {
+    const selectedData = data.filter(item => selectedItems.includes(item.id));
+    if (selectedData.length === 0) return;
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(selectedData), "Data");
+    XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    setAlert({ type: 'success', message: `${selectedData.length} kayıt Excel'e aktarıldı` });
+  };
+
+  const excelIndir = () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosyalar), "Dosyalar");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kurumDosyalari), "Kurum Tahsilat");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(giderler), "Ofis Giderleri");
+    XLSX.writeFile(wb, "MB_Hukuk_Mali_Rapor.xlsx");
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      {/* HEADER */}
+      <Header />
+      
+      {/* MAIN CONTENT */}
+      <div className="flex flex-1 overflow-hidden font-sans text-gray-800">
+      
+      {/* SIDEBAR */}
+      <div className={`bg-slate-900 text-slate-300 transition-all duration-300 flex flex-col shadow-2xl z-20 ${
+        sidebarOpen ? 'w-64' : 'w-20'
+      }`}>
+        <div className="p-5 border-b border-slate-700 flex justify-center items-center h-20">
+          <div 
+            className="font-bold text-lg tracking-wide cursor-pointer text-white overflow-hidden text-ellipsis whitespace-nowrap hover:text-blue-400 transition-colors" 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? 'M&B HUKUK' : 'M&B'}
+          </div>
+        </div>
+        <nav className="flex-1 py-6 flex flex-col gap-2 px-2">
+          <button 
+            onClick={() => setActiveTab('kurum')} 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'kurum' 
+                ? 'bg-indigo-600 text-white shadow-lg' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Building2 size={20} />
+            {sidebarOpen && <span className="font-medium">Kurum İşlemleri</span>}
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('dosyalar')} 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'dosyalar' 
+                ? 'bg-blue-600 text-white shadow-lg' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Briefcase size={20} />
+            {sidebarOpen && <span className="font-medium">Dosya İşlemleri</span>}
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('giderler')} 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'giderler' 
+                ? 'bg-rose-600 text-white shadow-lg' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Wallet size={20} />
+            {sidebarOpen && <span className="font-medium">Ofis Giderleri</span>}
+          </button>
+          
+          <div className="my-4 border-t border-slate-700 mx-2"></div>
+          
+          <button 
+            onClick={() => setActiveTab('dashboard')} 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'dashboard' 
+                ? 'bg-emerald-600 text-white shadow-lg' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Home size={20} />
+            {sidebarOpen && <span className="font-medium">Dashboard</span>}
+          </button>
+        </nav>
+      </div>
+
+      {/* CONTENT */}
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-sm h-20">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">{settings.firmName}</h1>
+            <p className="text-sm text-slate-500">Mali Yönetim Paneli v10.0 - Gelişmiş Özellikler</p>
+          </div>
+          <div className="flex gap-3 relative">
+             <Button 
+               onClick={() => setShowNotifications(!showNotifications)} 
+               variant="outline"
+               size="sm"
+               className={`relative ${notifications.length > 0 ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+             >
+               <Bell size={18}/>
+               {notifications.length > 0 && (
+                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                   {notifications.length}
+                 </span>
+               )}
+             </Button>
+             
+             {/* Bildirim Paneli */}
+             {showNotifications && (
+               <div className="absolute top-12 right-0 w-[450px] max-h-[600px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                 {/* Header */}
+                 <div className="p-4 border-b-2 border-gray-200 flex justify-between items-center bg-gray-50">
+                   <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                     <Bell size={20} className="text-indigo-600"/>
+                     Bildirimler ({notifications.length})
+                   </h3>
+                   <button 
+                     onClick={() => setShowNotifications(false)} 
+                     className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-600"
+                   >
+                     <X size={18}/>
+                   </button>
+                 </div>
+                 
+                 {/* Bildirim Listesi */}
+                 <div className="flex-1 overflow-auto p-2">
+                   {notifications.length === 0 ? (
+                     <div className="text-center py-10 px-5 text-gray-400">
+                       <Bell size={48} className="mx-auto mb-4 opacity-30"/>
+                       <p className="text-sm">Bildirim bulunmuyor</p>
+                     </div>
+                   ) : (
+                     notifications.map((notif, index) => {
+                       const typeStyles = {
+                         success: 'bg-emerald-50 border-emerald-200',
+                         warning: 'bg-amber-50 border-amber-200',
+                         error: 'bg-red-50 border-red-200',
+                         default: 'bg-blue-50 border-blue-200'
+                       };
+                       
+                       const icons = {
+                         success: '✅',
+                         warning: '⚠️',
+                         error: '🚨',
+                         default: '🔔'
+                       };
+                       
+                       const style = typeStyles[notif.type] || typeStyles.default;
+                       const icon = icons[notif.type] || icons.default;
+                       
+                       return (
+                         <div 
+                           key={index}
+                           className={`p-3 mb-2 ${style} border rounded-lg cursor-pointer transition-all duration-200 hover:-translate-x-1 hover:shadow-md`}
+                         >
+                           <div className="flex gap-3 items-start">
+                             <span className="text-2xl flex-shrink-0">{icon}</span>
+                             <div className="flex-1">
+                               <p className="text-sm text-gray-700 leading-relaxed m-0">
+                                 {notif.message}
+                               </p>
+                               {notif.priority && (
+                                 <span className="text-[10px] text-gray-500 mt-1 inline-block bg-black/5 px-2 py-0.5 rounded">
+                                   Öncelik: {notif.priority}
+                                 </span>
+                               )}
+                             </div>
+                           </div>
+                         </div>
+                       );
+                     })
+                   )}
+                 </div>
+                 
+                 {/* Footer */}
+                 {notifications.length > 0 && (
+                   <div className="p-3 border-t border-gray-200 bg-gray-50">
+                     <Button 
+                       onClick={() => {
+                         setNotifications([]);
+                         setShowNotifications(false);
+                       }}
+                       variant="outline"
+                       size="sm"
+                       className="w-full"
+                     >
+                       Tümünü Temizle
+                     </Button>
+                   </div>
+                 )}
+               </div>
+             )}
+             
+             <Button 
+               onClick={() => setShowSettingsModal(true)} 
+               variant="outline"
+               size="sm"
+               className="bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+             >
+               <Settings size={18}/>
+             </Button>
+             <Button 
+               onClick={generatePDFReport}
+               variant="outline"
+               size="sm"
+               className="bg-red-50 border-red-300 text-red-600 hover:bg-red-100"
+             >
+               <FileDown size={18}/>
+               PDF
+             </Button>
+             <Button 
+               onClick={excelIndir}
+               variant="outline"
+               size="sm"
+               className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+             >
+               <Download size={18}/>
+               Excel
+             </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto p-8 bg-slate-50">
+          
+          {/* KURUM İŞLEMLERİ */}
+          {activeTab === 'kurum' && (
+             <div className="flex flex-col gap-8">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
+                    <SummaryCard title="Reel Kurum Tahsilatı (Kasa)" value={hesaplamalar.kurumReelGelir} type="income" />
+                    <SummaryCard title="Bekleyen Alacak (Kurum)" value={hesaplamalar.kurumBekleyenAlacak} type="pending" />
+                    <SummaryCard title="Kurum Net Bakiye" value={hesaplamalar.kurumReelGelir - (hesaplamalar.kurumMasrafToplam - hesaplamalar.kurumMasrafIade)} type="net" subValue={hesaplamalar.kurumMasrafIade} subLabel="İade Alınan Masraf" />
+                </div>
+
+                {/* Kurum Hakedişleri Tablosu - Yeni Component */}
+                <Kurum 
+                  kurumHakedisler={hesaplamalar.kurumHakedisler} 
+                  formatPara={formatPara}
+                  onEdit={(kurum) => {
+                    setEditingItem(kurum);
+                    setShowNewInstitutionModal(true);
+                  }}
+                  onDelete={(id) => {
+                    if (window.confirm('⚠️ Bu kurum hakedişini silmek istediğinizden emin misiniz?')) {
+                      deleteInstitutionMutation.mutate(id);
+                    }
+                  }}
+                />
+
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-8">
+                {/* Masraflar TABLOSU */}
+                    <Card className="flex flex-col h-[500px]">
+                        <CardHeader className="flex flex-row items-center justify-between bg-gray-50">
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="text-rose-600" size={20}/> 
+                                Kurum Masraf
+                            </CardTitle>
+                            <Button onClick={() => setShowNewInstitutionExpenseModal(true)} className="flex items-center gap-1 bg-rose-600 hover:bg-rose-700" size="sm">
+                                <Plus size={16}/> Ekle
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="overflow-auto p-2 flex-1">
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader className="sticky top-0 bg-gray-50 z-10">
+                                        <TableRow>
+                                            <TableHead>Tarih</TableHead>
+                                            <TableHead>Açıklama</TableHead>
+                                            <TableHead className="text-right">Tutar</TableHead>
+                                            <TableHead>Not</TableHead>
+                                            <TableHead className="text-center">Durum</TableHead>
+                                            <TableHead className="text-center">Detay</TableHead>
+                                            <TableHead className="text-center">Düzenle</TableHead>
+                                            <TableHead className="text-center">Sil</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {kurumMasraflari.map(m => (
+                                            <TableRow key={m.id} className={m.odendi ? 'bg-emerald-50' : 'hover:bg-orange-50'}>
+                                                <TableCell className="text-gray-500 text-xs">{m.tarih || '-'}</TableCell>
+                                                <TableCell className="font-medium text-xs">{m.aciklama}</TableCell>
+                                                <TableCell className="text-right font-bold text-rose-600">{formatPara(m.tutar)}</TableCell>
+                                                <TableCell className="text-xs text-gray-500 max-w-[120px] truncate">{m.notes ? (m.notes.length > 20 ? m.notes.substring(0, 20) + '...' : m.notes) : '-'}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <button 
+                                                        onClick={() => toggleInstitutionExpenseMutation.mutate(m.id)} 
+                                                        className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1 w-full transition-all ${
+                                                            m.odendi 
+                                                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+                                                                : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                                                        }`}
+                                                    >
+                                                        {m.odendi ? 'Ödendi' : 'Tahsil Et'}
+                                                    </button>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <button onClick={() => openDetailModal(m, 'institutionExpense')} className="text-blue-400 hover:text-blue-600 transition-colors">
+                                                        <Eye size={16}/>
+                                                    </button>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <button onClick={() => openEditModal(m, 'institutionExpense')} className="text-purple-400 hover:text-purple-600 transition-colors">
+                                                        <Edit2 size={16}/>
+                                                    </button>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <button onClick={() => deleteInstitutionExpenseMutation.mutate(m.id)} className="text-red-300 hover:text-red-600 transition-colors">
+                                                        <Trash2 size={16}/>
+                                                    </button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+             </div>
+          )}
+
+          {/* DOSYA İŞLEMLERİ */}
+          {activeTab === 'dosyalar' && (
+             <div className="flex flex-col gap-8">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
+                    <SummaryCard title="Dosya Tahsilatı" value={hesaplamalar.dosyaTahsilat} type="income" />
+                    <SummaryCard title="Toplam Takip Masrafı" value={hesaplamalar.dosyaMasrafToplam} type="expense" />
+                    <SummaryCard title="Dosya Net Bakiye" value={hesaplamalar.dosyaTahsilat - (hesaplamalar.dosyaMasrafToplam - hesaplamalar.dosyaMasrafIade)} type="net" subValue={hesaplamalar.dosyaMasrafIade} subLabel="Müvekkilden Alınan"/>
+                </div>
+                
+                {/* Duruşma Hatırlatıcıları */}
+                <HearingReminders dosyalar={dosyalar} />
+                
+                {/* Dosyalar Tablosu - Yeni Component */}
+                <Dosyalar 
+                  dosyalar={dosyalar} 
+                  formatPara={formatPara}
+                  onEdit={(dosya) => {
+                    setEditingItem(dosya);
+                    setShowNewFileModal(true);
+                  }}
+                  onDelete={(id) => {
+                    if (window.confirm('⚠️ Bu dosyayı silmek istediğinizden emin misiniz?')) {
+                      deleteFileMutation.mutate(id);
+                    }
+                  }}
+                />
+             </div>
+          )}
+                
+          {/* OFİS GİDERLERİ */}
+          {activeTab === 'giderler' && (
+             <div className="flex flex-col gap-8">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-rose-100 rounded-lg text-rose-600">
+                        <Wallet size={24}/>
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold">Ofis Gider Listesi</h2>
+                        <p className="text-sm text-gray-500">Maaş, kira, fatura ve diğer operasyonel giderler</p>
+                    </div>
+                    <div className="text-right ml-auto">
+                        <p className="text-sm text-gray-500">Toplam Gider</p>
+                        <p className="text-2xl font-bold text-rose-600">{formatPara(hesaplamalar.ofisGiderToplam)}</p>
+                    </div>
+                </div>
+                
+                {/* Giderler Tablosu - Yeni Component */}
+                <Giderler 
+                  giderler={giderler} 
+                  formatPara={formatPara}
+                  onEdit={(gider) => {
+                    setEditingItem(gider);
+                    setShowNewExpenseModal(true);
+                  }}
+                  onDelete={(id) => {
+                    if (window.confirm('⚠️ Bu gideri silmek istediğinizden emin misiniz?')) {
+                      deleteExpenseMutation.mutate(id);
+                    }
+                  }}
+                />
+             </div>
+          )}
+        </div> {/* Content area - line 642 */}
+
+      {/* MODALS */}
+      <Modal isOpen={showNewInstitutionModal} onClose={() => { setShowNewInstitutionModal(false); setEditingItem(null); }} title={editingItem ? "Kurum Hakedişini Düzenle" : "Yeni Kurum Hakedişi"}>
+        <InstitutionForm 
+          onSubmit={handleInstitutionSubmit}
+          initialData={editingItem}
+          onCancel={() => { setShowNewInstitutionModal(false); setEditingItem(null); }}
+        />
+      </Modal>
+
+      <Modal isOpen={showNewInstitutionExpenseModal} onClose={() => { setShowNewInstitutionExpenseModal(false); setEditingItem(null); }} title={editingItem ? "Kurum Masrafını Düzenle" : "Yeni Kurum Masrafı"}>
+        <InstitutionExpenseForm 
+          onSubmit={handleInstitutionExpenseSubmit}
+          initialData={editingItem}
+          onCancel={() => { setShowNewInstitutionExpenseModal(false); setEditingItem(null); }}
+        />
+      </Modal>
+
+      <Modal isOpen={showNewFileModal} onClose={() => { setShowNewFileModal(false); setEditingItem(null); }} title={editingItem ? "Dosyayı Düzenle" : "Yeni Serbest Dosya"}>
+        <FileForm 
+          onSubmit={handleFileSubmit}
+          initialData={editingItem}
+          onCancel={() => { setShowNewFileModal(false); setEditingItem(null); }}
+        />
+      </Modal>
+
+      <Modal isOpen={showNewLegalExpenseModal} onClose={() => { setShowNewLegalExpenseModal(false); setEditingItem(null); }} title={editingItem ? "Dosya Masrafını Düzenle" : "Serbest Dosya Masrafı"}>
+        <LegalExpenseForm 
+          onSubmit={handleLegalExpenseSubmit}
+          initialData={editingItem}
+          onCancel={() => { setShowNewLegalExpenseModal(false); setEditingItem(null); }}
+          dosyalar={dosyalar}
+        />
+      </Modal>
+
+      <Modal isOpen={showNewExpenseModal} onClose={() => { setShowNewExpenseModal(false); setEditingItem(null); }} title={editingItem ? "Gideri Düzenle" : "Ofis Gideri"}>
+        <ExpenseForm 
+          onSubmit={handleExpenseSubmit}
+          initialData={editingItem}
+          onCancel={() => { setShowNewExpenseModal(false); setEditingItem(null); }}
+        />
+      </Modal>
+
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
+
+      {/* AYARLAR MODAL */}
+      <Modal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} title="⚙️ Ayarlar">
+        <div className="flex flex-col gap-5">
+          <div>
+            <Label htmlFor="firmName" className="text-sm font-semibold text-gray-700 mb-2 block">Firma Adı</Label>
+            <Input 
+              id="firmName"
+              className="w-full" 
+              value={settings.firmName} 
+              onChange={(e) => setSettings({...settings, firmName: e.target.value})}
+            />
+          </div>
+          <div>
+            <Label htmlFor="currency" className="text-sm font-semibold text-gray-700 mb-2 block">Para Birimi</Label>
+            <select 
+              id="currency"
+              className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-white"
+              value={settings.currency}
+              onChange={(e) => setSettings({...settings, currency: e.target.value})}
+            >
+              <option value="TRY">₺ Türk Lirası (TRY)</option>
+              <option value="USD">$ Amerikan Doları (USD)</option>
+              <option value="EUR">€ Euro (EUR)</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="kdvRate" className="text-sm font-semibold text-gray-700 mb-2 block">KDV Oranı (%)</Label>
+            <Input 
+              id="kdvRate"
+              type="number"
+              className="w-full" 
+              value={settings.kdvRate} 
+              onChange={(e) => setSettings({...settings, kdvRate: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div>
+            <Label htmlFor="notificationDays" className="text-sm font-semibold text-gray-700 mb-2 block">Bildirim Günü (Ödenmemiş işlemler için)</Label>
+            <Input 
+              id="notificationDays"
+              type="number"
+              className="w-full" 
+              value={settings.notificationDays} 
+              onChange={(e) => setSettings({...settings, notificationDays: parseInt(e.target.value)})}
+            />
+          </div>
+          <Button 
+            onClick={() => {
+              setShowSettingsModal(false);
+              setAlert({ type: 'success', message: 'Ayarlar kaydedildi' });
+            }}
+            className="w-full bg-indigo-600 hover:bg-indigo-700"
+          >
+            Kaydet
+          </Button>
+        </div>
+      </Modal>
+
+      {/* DETAY MODAL */}
+      <Modal isOpen={detailModal.isOpen} onClose={closeDetailModal} title={
+        detailModal.type === 'file' ? '📁 Dosya Detayları' :
+        detailModal.type === 'institution' ? '🏢 Kurum Hakediş Detayları' :
+        detailModal.type === 'institutionExpense' ? '💼 Kurum Masraf Detayları' :
+        detailModal.type === 'legalExpense' ? '⚖️ Dosya Masraf Detayları' :
+        detailModal.type === 'expense' ? '💰 Gider Detayları' : 'Detaylar'
+      }>
+        <div className="flex flex-col gap-0">
+          {detailModal.item && detailModal.type === 'file' && (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Dosya Numarası</p>
+                <p className="text-base text-blue-900 font-bold">{detailModal.item.dosya_no}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Müvekkil Adı</p>
+                <p className="text-[15px] text-gray-800 font-semibold">{detailModal.item.muvekkil_adi}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-green-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Tahsil Edilen</p>
+                <p className="text-lg text-green-700 font-bold">{formatPara(detailModal.item.tahsil_edilen)}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-amber-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Tahsil Edilecek</p>
+                <p className="text-lg text-amber-600 font-bold">{formatPara(detailModal.item.tahsil_edilecek)}</p>
+              </div>
+              {detailModal.item.notes && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Notlar</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{detailModal.item.notes}</p>
+                </div>
+              )}
+              {detailModal.item.created_at && (
+                <div className="px-4 py-3 bg-gray-100 border-t border-gray-200">
+                  <p className="text-[11px] text-gray-400">
+                    Oluşturulma: {new Date(detailModal.item.created_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {detailModal.item && detailModal.type === 'institution' && (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Kurum Adı</p>
+                <p className="text-base text-indigo-600 font-bold">{detailModal.item.kurum_adi}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Dosya Numarası</p>
+                <p className="text-[15px] text-gray-800 font-semibold">{detailModal.item.dosya_no}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-blue-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Tahsil Tutarı</p>
+                <p className="text-lg text-blue-900 font-bold">{formatPara(detailModal.item.tahsil_tutar)}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Vekalet Oranı</p>
+                <p className="text-base text-gray-800 font-semibold">%{detailModal.item.vekalet_orani}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-green-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Net Hakediş</p>
+                <p className="text-xl text-green-700 font-bold">{formatPara(detailModal.item.net_hakedis)}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Ödeme Durumu</p>
+                <span className={`inline-block px-3.5 py-1.5 rounded-full text-[13px] font-semibold ${
+                  detailModal.item.odendi ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'
+                }`}>
+                  {detailModal.item.odendi ? '✓ Ödendi' : '⏳ Ödenmedi'}
+                </span>
+              </div>
+              {detailModal.item.notes && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Notlar</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{detailModal.item.notes}</p>
+                </div>
+              )}
+              {detailModal.item.created_at && (
+                <div className="px-4 py-3 bg-gray-100 border-t border-gray-200">
+                  <p className="text-[11px] text-gray-400">
+                    Oluşturulma: {new Date(detailModal.item.created_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {detailModal.item && detailModal.type === 'institutionExpense' && (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Açıklama</p>
+                <p className="text-base text-gray-800 font-bold">{detailModal.item.aciklama}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Masraf Türü</p>
+                <span className="inline-block px-3.5 py-1.5 rounded-full text-[13px] font-semibold bg-indigo-100 text-indigo-800">
+                  {detailModal.item.masraf_turu}
+                </span>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-red-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Tutar</p>
+                <p className="text-xl text-red-600 font-bold">{formatPara(detailModal.item.tutar)}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Masraf Tarihi</p>
+                <p className="text-[15px] text-gray-800 font-semibold">
+                  📅 {detailModal.item.tarih ? new Date(detailModal.item.tarih).toLocaleDateString('tr-TR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : '-'}
+                </p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Ödeme Durumu</p>
+                <span className={`inline-block px-3.5 py-1.5 rounded-full text-[13px] font-semibold ${
+                  detailModal.item.odendi ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'
+                }`}>
+                  {detailModal.item.odendi ? '✓ Ödendi' : '⏳ Ödenmedi'}
+                </span>
+              </div>
+              {detailModal.item.notes && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Notlar</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{detailModal.item.notes}</p>
+                </div>
+              )}
+              {detailModal.item.created_at && (
+                <div className="px-4 py-3 bg-gray-100 border-t border-gray-200">
+                  <p className="text-[11px] text-gray-400">
+                    Oluşturulma: {new Date(detailModal.item.created_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {detailModal.item && detailModal.type === 'legalExpense' && (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">İlgili Dosya</p>
+                <p className="text-base text-blue-900 font-bold">
+                  {dosyalar.find(d => d.id === detailModal.item.dosya_id)?.dosya_no || 'Dosya Bulunamadı'}
+                </p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Masraf Türü</p>
+                <span className="inline-block px-3.5 py-1.5 rounded-full text-[13px] font-semibold bg-amber-100 text-amber-900">
+                  {detailModal.item.masraf_turu}
+                </span>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-red-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Tutar</p>
+                <p className="text-xl text-red-600 font-bold">{formatPara(detailModal.item.tutar)}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Masraf Tarihi</p>
+                <p className="text-[15px] text-gray-800 font-semibold">
+                  📅 {detailModal.item.tarih ? new Date(detailModal.item.tarih).toLocaleDateString('tr-TR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : '-'}
+                </p>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Ödeme Durumu</p>
+                <span className={`inline-block px-3.5 py-1.5 rounded-full text-[13px] font-semibold ${
+                  detailModal.item.odendi ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'
+                }`}>
+                  {detailModal.item.odendi ? '✓ Ödendi' : '⏳ Ödenmedi'}
+                </span>
+              </div>
+              {detailModal.item.notes && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Notlar</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{detailModal.item.notes}</p>
+                </div>
+              )}
+              {detailModal.item.created_at && (
+                <div className="px-4 py-3 bg-gray-100 border-t border-gray-200">
+                  <p className="text-[11px] text-gray-400">
+                    Oluşturulma: {new Date(detailModal.item.created_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {detailModal.item && detailModal.type === 'expense' && (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Kategori</p>
+                <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-blue-100 text-blue-900 border-2 border-blue-300">
+                  {detailModal.item.kategori}
+                </span>
+              </div>
+              <div className="p-4 border-b border-gray-200">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Açıklama</p>
+                <p className="text-base text-gray-800 font-bold">{detailModal.item.aciklama}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-red-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Tutar</p>
+                <p className="text-[22px] text-red-600 font-bold">{formatPara(detailModal.item.tutar)}</p>
+              </div>
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Gider Tarihi</p>
+                <p className="text-[15px] text-gray-800 font-semibold">
+                  📅 {detailModal.item.tarih ? new Date(detailModal.item.tarih).toLocaleDateString('tr-TR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : '-'}
+                </p>
+              </div>
+              {detailModal.item.notes && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">Notlar</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{detailModal.item.notes}</p>
+                </div>
+              )}
+              {detailModal.item.created_at && (
+                <div className="px-4 py-3 bg-gray-100 border-t border-gray-200">
+                  <p className="text-[11px] text-gray-400">
+                    Oluşturulma: {new Date(detailModal.item.created_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </Modal>
+
+      </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;

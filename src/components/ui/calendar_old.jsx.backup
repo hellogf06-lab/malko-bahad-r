@@ -1,0 +1,112 @@
+import * as React from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "../../lib/utils"
+
+const Calendar = ({ mode = "single", selected, onSelect, disabled, className }) => {
+  const [currentMonth, setCurrentMonth] = React.useState(
+    selected ? new Date(selected) : new Date()
+  )
+
+  const monthNames = [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+  ]
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDayOfWeek = firstDay.getDay()
+
+    return { daysInMonth, startingDayOfWeek }
+  }
+
+  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentMonth)
+
+  const handleDateClick = (day) => {
+    const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    if (disabled && disabled(newDate)) return
+    onSelect?.(newDate)
+  }
+
+  const previousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+  }
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+  }
+
+  const isSelected = (day) => {
+    if (!selected) return false
+    return (
+      selected.getDate() === day &&
+      selected.getMonth() === currentMonth.getMonth() &&
+      selected.getFullYear() === currentMonth.getFullYear()
+    )
+  }
+
+  const isDisabled = (day) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    return disabled ? disabled(date) : false
+  }
+
+  return (
+    <div className={cn("p-3", className)}>
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={previousMonth}
+          className="p-1 hover:bg-gray-100 rounded"
+          type="button"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div className="font-semibold">
+          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+        </div>
+        <button
+          onClick={nextMonth}
+          className="p-1 hover:bg-gray-100 rounded"
+          type="button"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {["Pz", "Pt", "Sl", "Çr", "Pr", "Cm", "Ct"].map(day => (
+          <div key={day} className="text-xs font-medium text-gray-500 p-2">
+            {day}
+          </div>
+        ))}
+
+        {Array.from({ length: startingDayOfWeek }).map((_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
+
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1
+          return (
+            <button
+              key={day}
+              onClick={() => handleDateClick(day)}
+              disabled={isDisabled(day)}
+              type="button"
+              className={cn(
+                "h-9 w-9 p-0 font-normal rounded-md hover:bg-gray-100",
+                isSelected(day) && "bg-blue-600 text-white hover:bg-blue-700",
+                isDisabled(day) && "text-gray-300 cursor-not-allowed hover:bg-transparent"
+              )}
+            >
+              {day}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export { Calendar }
