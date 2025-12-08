@@ -50,6 +50,7 @@ import { ExpenseSheet } from './components/forms/ExpenseSheet';
 
 // Hooks
 import { useAllDataQueries } from './hooks/useQuery';
+import { useResponsive } from './hooks/useResponsive';
 import { useAddData, useUpdateData, useDeleteData, useTogglePaid } from './hooks/useQuery';
 import { useCalculations } from './hooks/useCalculations';
 import { usePDFExport } from './hooks/usePDFExport';
@@ -60,6 +61,8 @@ import { EXPENSE_CATEGORIES, STORAGE_KEY, COLORS } from './utils/constants.ts';
 
 // --- ANA UYGULAMA ---
 const App = () => {
+        // Mobil uyumluluk için responsive hook
+        const { isMobile } = useResponsive();
       // Kullanıcı ve profil bilgisini AuthContext'ten al
       const { profile, user, isAdmin } = useAuth();
     // Kullanıcı yönetimi paneli için state
@@ -67,6 +70,12 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard'); 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
+  // Mobilde sidebar'ı otomatik kapalı başlat
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+    else setSidebarOpen(true);
+  }, [isMobile]);
+
   // Modals
   const [showNewFileModal, setShowNewFileModal] = useState(false);
   const [showNewLegalExpenseModal, setShowNewLegalExpenseModal] = useState(false);
@@ -260,19 +269,20 @@ const App = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col h-screen">
+      <div className={`flex flex-col h-screen ${isMobile ? 'text-sm' : ''}`}>
         <Header 
-          toggleSidebar={() => {}}
-          sidebarOpen={true}
+          toggleSidebar={() => setSidebarOpen((v) => !v)}
+          sidebarOpen={sidebarOpen}
           activeTab="overview"
           onTabChange={() => {}}
         />
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar Skeleton */}
-          <div className="w-64 bg-slate-900 border-r border-slate-800" />
-          
+          {sidebarOpen && (
+            <div className={`bg-slate-900 border-r border-slate-800 ${isMobile ? 'w-16' : 'w-64'}`} />
+          )}
           {/* Main Content with TableSkeleton */}
-          <div className="flex-1 overflow-auto bg-slate-50">
+          <div className={`flex-1 overflow-auto bg-slate-50 ${isMobile ? 'p-2' : ''}`}>
             <TableSkeleton />
           </div>
         </div>
@@ -283,7 +293,7 @@ const App = () => {
   // Error state
   if (isError) {
     return (
-      <div className="flex justify-center items-center h-screen text-lg text-red-600">
+      <div className={`flex justify-center items-center h-screen text-lg text-red-600 ${isMobile ? 'text-base' : ''}`}>
         <div className="text-center p-6 bg-red-100 rounded-xl">
           <p className="font-bold mb-2">❌ Hata Oluştu</p>
           <p>{error?.message || 'Veriler yüklenirken bir hata oluştu'}</p>
