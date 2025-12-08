@@ -1,3 +1,4 @@
+import { User } from 'lucide-react';
 import React, { useState } from 'react';
 import { 
   Home, 
@@ -23,6 +24,8 @@ import { Badge } from "./ui/badge";
 
 const Layout = ({ children, activeTab, setActiveTab }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Bildirim ve ayar açma fonksiyonları App'ten gelecek
+  const { onOpenNotifications, onOpenSettings } = (typeof window !== 'undefined' && window.__layoutProps) || {};
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
@@ -156,11 +159,11 @@ const Layout = ({ children, activeTab, setActiveTab }) => {
 
           {/* Sağ Aksiyonlar */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100 relative">
+            <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100 relative" onClick={onOpenNotifications}>
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
             </Button>
-            <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100">
+            <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100" onClick={onOpenSettings}>
               <Settings size={20} />
             </Button>
           </div>

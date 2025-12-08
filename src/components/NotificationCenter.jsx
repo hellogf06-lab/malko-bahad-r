@@ -7,6 +7,14 @@ const NotificationCenter = ({ notifications, onClose, onClear, onMarkAsRead }) =
   const [filter, setFilter] = useState('all'); // all, success, warning, error, info
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
 
+  React.useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
   const filteredNotifications = useMemo(() => {
     let filtered = notifications;
 

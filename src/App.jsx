@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, FileDown, ChevronUp, ChevronDown, X, Filter, Calendar } from 'lucide-react';
+import { Download, Upload, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, ChevronUp, ChevronDown, X, Filter, Calendar } from 'lucide-react';
+// Modern ikon stilleri için
+const iconButtonStyle = "rounded-lg shadow-sm border border-gray-200 bg-white hover:bg-gray-50 transition-all flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700";
 import * as XLSX from 'xlsx';
+import { useAuth } from './contexts/AuthContext';
 
 // Components
 import Layout from './components/Layout';
@@ -22,6 +25,7 @@ import { Drawer, DetailField, DrawerBadge } from './components/ui/drawer';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import TableSkeleton from './components/TableSkeleton';
+import UserManagement from './components/UserManagement';
 
 // Advanced Components
 import { CalendarView } from './components/CalendarView';
@@ -56,6 +60,10 @@ import { EXPENSE_CATEGORIES, STORAGE_KEY, COLORS } from './utils/constants.ts';
 
 // --- ANA UYGULAMA ---
 const App = () => {
+      // Kullanıcı ve profil bilgisini AuthContext'ten al
+      const { profile, user, isAdmin } = useAuth();
+    // Kullanıcı yönetimi paneli için state
+    const [showUserManagement, setShowUserManagement] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard'); 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
@@ -499,15 +507,81 @@ const App = () => {
   };
 
   const excelIndir = () => {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosyalar), "Dosyalar");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kurumDosyalari), "Kurum Tahsilat");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(giderler), "Ofis Giderleri");
-    XLSX.writeFile(wb, "MB_Hukuk_Mali_Rapor.xlsx");
+    exportAllData(dosyalar, kurumDosyalari, giderler);
+    toast.success('Tüm veriler Excel olarak indirildi.');
   };
 
+  // Bildirim ve ayar açma fonksiyonları
+  const handleOpenNotifications = () => setShowNotifications(true);
+  const handleOpenSettings = () => setShowSettingsModal(true);
+
+  // Layout'a fonksiyonları window objesiyle geçiriyoruz (Vite HMR için)
+  if (typeof window !== 'undefined') {
+    window.__layoutProps = {
+      onOpenNotifications: handleOpenNotifications,
+      onOpenSettings: handleOpenSettings
+    };
+  }
+
+  // DEBUG: Yüklenme, hata ve profil durumu
+  if (isLoading) {
+    return <div style={{padding:40, color:'blue', fontWeight:'bold'}}>Yükleniyor... (isLoading=true)</div>;
+  }
+  if (isError) {
+    return <div style={{padding:40, color:'red', fontWeight:'bold'}}>Hata: {error?.message || 'Veri çekilemedi'} (isError=true)</div>;
+  }
+  if (!dosyalar || !kurumDosyalari || !giderler) {
+    return <div style={{padding:40, color:'orange', fontWeight:'bold'}}>Veri eksik! dosyalar/kurumDosyalari/giderler yok.</div>;
+  }
+  // Profil veya context eksikse uyarı
+  if (typeof profile === 'undefined') {
+    return <div style={{padding:40, color:'purple', fontWeight:'bold'}}>Profil/context eksik! (profile undefined)</div>;
+  }
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+      {/* Sadece adminler için kullanıcı yönetimi erişimi */}
+      {profile?.role === 'admin' && (
+        <div className="flex justify-end p-4">
+          <button
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-indigo-700"
+            onClick={() => setShowUserManagement(true)}
+          >
+            <span>Kullanıcı Yönetimi</span>
+          </button>
+        </div>
+      )}
+      {/* Modern Export/Upload Butonları */}
+      <div className="flex gap-3 p-4 justify-end">
+        <button
+          className={iconButtonStyle + " text-green-700 border-green-300"}
+          onClick={() => setShowImporter(true)}
+        >
+          <Upload size={20} className="text-green-600" />
+          <span>Yükle (Excel/CSV)</span>
+        </button>
+        <button
+          className={iconButtonStyle + " text-blue-700 border-blue-300"}
+          onClick={excelIndir}
+        >
+          <Download size={20} className="text-blue-600" />
+          <span>Excel İndir</span>
+        </button>
+        <button
+          className={iconButtonStyle + " text-rose-700 border-rose-300"}
+          onClick={generatePDFReport}
+        >
+          <Download size={20} className="text-rose-600" />
+          <span>PDF İndir</span>
+        </button>
+      </div>
+      {/* Kullanıcı Yönetimi Modalı */}
+      {showUserManagement && (
+        <Modal isOpen={showUserManagement} onClose={() => setShowUserManagement(false)} title="Kullanıcı Yönetimi">
+          <div className="p-2">
+            <UserManagement />
+          </div>
+        </Modal>
+      )}
       {/* Ana İçerik Bölgesi - Sadece Tab İçerikleri */}
           
           {/* KURUM İŞLEMLERİ */}
@@ -563,12 +637,12 @@ const App = () => {
                                             Seçilileri Sil ({selectedItems.length})
                                         </Button>
                                         <Button 
-                                            onClick={() => handleBulkExport(hesaplamalar.kurumHakedisler, 'kurum_hakedisler')} 
-                                            variant="outline"
-                                            size="sm"
-                                            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                                          onClick={() => handleBulkExport(hesaplamalar.kurumHakedisler, 'kurum_hakedisler')} 
+                                          variant="outline"
+                                          size="sm"
+                                          className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 flex items-center gap-1"
                                         >
-                                            Excel
+                                          <Download size={16}/> Excel
                                         </Button>
                                     </div>
                                 )}
@@ -1449,12 +1523,24 @@ const App = () => {
       )}
       
       {showImporter && (
-        <Modal isOpen={showImporter} onClose={() => setShowImporter(false)} title="Veri İçe Aktarma">
-          <DataImporter 
-            isOpen={showImporter}
-            onClose={() => setShowImporter(false)}
-            onImport={(data) => console.log('İçe aktarılan veri:', data)}
-          />
+        <Modal isOpen={showImporter} onClose={() => setShowImporter(false)} title="Veri Yükle (Excel/CSV)">
+          <div className="flex flex-col items-center justify-center gap-4 p-4">
+            <button
+              className={iconButtonStyle + " text-green-700 border-green-300 w-full justify-center"}
+              style={{ fontSize: '1.1rem' }}
+              disabled
+            >
+              <Upload size={24} className="text-green-600" />
+              <span>Excel/CSV Yükle</span>
+            </button>
+            <div className="w-full max-w-xl">
+              <DataImporter 
+                isOpen={showImporter}
+                onClose={() => setShowImporter(false)}
+                onImport={(data) => console.log('İçe aktarılan veri:', data)}
+              />
+            </div>
+          </div>
         </Modal>
       )}
       
