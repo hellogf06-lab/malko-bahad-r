@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,6 +19,7 @@ const Login = ({ onLogin }) => {
       setError(error.message || 'Giriş başarısız');
     } else {
       if (onLogin) onLogin();
+      navigate('/'); // Başarılı login sonrası ana sayfaya yönlendir
     }
     setLoading(false);
   };

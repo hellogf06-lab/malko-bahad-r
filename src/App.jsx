@@ -80,8 +80,6 @@ const App = () => {
   } = useAllDataQueries();
   // --- HESAPLAMALAR ---
   const hesaplamalar = useCalculations(dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari);
-  // --- HESAPLAMALAR ---
-  // ...existing code...
   // Supabase bağlantı testi ve hata paneli
   const [supabaseStatus, setSupabaseStatus] = useState('');
   useEffect(() => {
@@ -234,7 +232,6 @@ const App = () => {
   const deleteExpenseMutation = useDeleteData('giderler');
 
   // --- HESAPLAMALAR ---
-  // ...existing code...
   const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings);
 
   // Bildirim kontrolü - akıllı bildirimler
