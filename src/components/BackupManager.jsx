@@ -16,7 +16,7 @@ const BackupManager = ({ isOpen, onClose }) => {
         timestamp: new Date().toISOString(),
         data: {
           dosyalar: JSON.parse(localStorage.getItem('dosyalar') || '[]'),
-          kurumDosyalari: JSON.parse(localStorage.getItem('kurumDosyalari') || '[]'),
+          kurumHakedisleri: JSON.parse(localStorage.getItem('kurumHakedisleri') || '[]'),
           takipMasraflari: JSON.parse(localStorage.getItem('takipMasraflari') || '[]'),
           kurumMasraflari: JSON.parse(localStorage.getItem('kurumMasraflari') || '[]'),
           giderler: JSON.parse(localStorage.getItem('giderler') || '[]'),

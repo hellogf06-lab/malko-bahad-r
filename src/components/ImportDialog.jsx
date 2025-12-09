@@ -63,9 +63,9 @@ const IMPORT_CONFIGS = {
       { "Tarih": "2024-01-20", "Açıklama": "Elektrik Faturası", "Kategori": "elektrik", "Tutar": 850, "Belge No": "E-01" }
     ]
   },
-  kurumDosyalari: {
+  kurumHakedisleri: {
     title: "Kurum Hakedişleri Yükle",
-    tableName: "kurumDosyalari",
+    tableName: "kurumHakedisleri",
     columnMap: {
       "Kurum Adı": "kurum_adi",
       "Dosya No": "dosya_no",
@@ -130,7 +130,7 @@ export function ImportDialog({ type, onSuccess }) {
           if(type === 'giderler') {
             newRow['odendi'] = false;
           }
-          if(type === 'kurumDosyalari') {
+          if(type === 'kurumHakedisleri') {
             newRow['odendi'] = false;
           }
           return newRow;

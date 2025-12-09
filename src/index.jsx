@@ -32,7 +32,11 @@ root.render(
           <Route path="/signup" element={<Signup />} />
           <Route 
             path="/*" 
-            element={<App />}
+            element={
+              <ProtectedRoute>
+                <App />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </BrowserRouter>

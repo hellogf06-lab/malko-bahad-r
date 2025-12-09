@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import toast from 'react-hot-toast';
 
-const ReminderSystem = ({ dosyalar, kurumDosyalari }) => {
+const ReminderSystem = ({ dosyalar, kurumHakedisleri }) => {
   const [reminders, setReminders] = useState([]);
   const [showPanel, setShowPanel] = useState(false);
 
@@ -12,7 +12,7 @@ const ReminderSystem = ({ dosyalar, kurumDosyalari }) => {
     checkReminders();
     const interval = setInterval(checkReminders, 60000); // Her dakika kontrol
     return () => clearInterval(interval);
-  }, [dosyalar, kurumDosyalari]);
+  }, [dosyalar, kurumHakedisleri]);
 
   const checkReminders = () => {
     const now = new Date();
@@ -39,8 +39,8 @@ const ReminderSystem = ({ dosyalar, kurumDosyalari }) => {
     });
 
     // Check kurum dosyaları for unpaid items
-    if (kurumDosyalari && kurumDosyalari.length > 0) {
-      kurumDosyalari.forEach(dosya => {
+    if (kurumHakedisleri && kurumHakedisleri.length > 0) {
+      kurumHakedisleri.forEach(dosya => {
         const amount = dosya.net_hakedis || dosya.ucret || 0;
         const isPaid = dosya.odendi === true || dosya.odenmeDurumu === 'Ödendi';
         

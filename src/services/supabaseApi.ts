@@ -24,7 +24,7 @@ export const fetchAllData = async (): Promise<AllDataResponse> => {
   const [dosyalarRes, takipRes, kurumDosyalariRes, kurumMasraflariRes, giderlerRes] = await Promise.all([
     supabase.from('dosyalar').select('*').eq('user_id', userId),
     supabase.from('takip_masraflari').select('*').eq('user_id', userId),
-    supabase.from('kurum_dosyalari').select('*').eq('user_id', userId),
+    supabase.from('kurum_hakedisleri').select('*').eq('user_id', userId),
     supabase.from('kurum_masraflari').select('*').eq('user_id', userId),
     supabase.from('giderler').select('*').eq('user_id', userId),
   ]);
@@ -147,10 +147,10 @@ export const toggleTakipMasrafiPaid = async (id: number, odendi: boolean): Promi
 // ============================================
 // KURUM DOSYALARI
 // ============================================
-export const fetchKurumDosyalari = async (): Promise<KurumDosyasi[]> => {
+export const fetchKurumHakedisleri = async (): Promise<KurumDosyasi[]> => {
   const userId = await getUserId();
   const { data, error } = await supabase
-    .from('kurum_dosyalari')
+    .from('kurum_hakedisleri')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -159,10 +159,10 @@ export const fetchKurumDosyalari = async (): Promise<KurumDosyasi[]> => {
   return data || [];
 };
 
-export const addKurumDosyasi = async (dosya: Omit<KurumDosyasi, 'id' | 'net_hakedis' | 'created_at' | 'updated_at'>): Promise<KurumDosyasi> => {
+export const addKurumHakedisi = async (dosya: Omit<KurumDosyasi, 'id' | 'net_hakedis' | 'created_at' | 'updated_at'>): Promise<KurumDosyasi> => {
   const userId = await getUserId();
   const { data, error } = await supabase
-    .from('kurum_dosyalari')
+    .from('kurum_hakedisleri')
     .insert([{ ...dosya, user_id: userId }])
     .select()
     .single();
@@ -171,9 +171,9 @@ export const addKurumDosyasi = async (dosya: Omit<KurumDosyasi, 'id' | 'net_hake
   return data;
 };
 
-export const updateKurumDosyasi = async (id: number, updates: Partial<KurumDosyasi>): Promise<KurumDosyasi> => {
+export const updateKurumHakedisi = async (id: number, updates: Partial<KurumDosyasi>): Promise<KurumDosyasi> => {
   const { data, error } = await supabase
-    .from('kurum_dosyalari')
+    .from('kurum_hakedisleri')
     .update(updates)
     .eq('id', id)
     .select()
@@ -183,17 +183,17 @@ export const updateKurumDosyasi = async (id: number, updates: Partial<KurumDosya
   return data;
 };
 
-export const deleteKurumDosyasi = async (id: number): Promise<void> => {
+export const deleteKurumHakedisi = async (id: number): Promise<void> => {
   const { error } = await supabase
-    .from('kurum_dosyalari')
+    .from('kurum_hakedisleri')
     .delete()
     .eq('id', id);
   
   if (error) throw error;
 };
 
-export const toggleKurumDosyasiPaid = async (id: number, odendi: boolean): Promise<KurumDosyasi> => {
-  return updateKurumDosyasi(id, { odendi });
+export const toggleKurumHakedisiPaid = async (id: number, odendi: boolean): Promise<KurumDosyasi> => {
+  return updateKurumHakedisi(id, { odendi });
 };
 
 // ============================================

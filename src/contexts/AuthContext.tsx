@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 
 type UserRole = 'admin' | 'user';
@@ -39,6 +40,24 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+    // Supabase oturumunu dinle ve user state'ini güncelle
+    useEffect(() => {
+      const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session && session.user) {
+          setUser(session.user);
+          setSession(session);
+          localStorage.setItem('auth_user', JSON.stringify(session.user));
+        } else {
+          setUser(null);
+          setSession(null);
+          localStorage.removeItem('auth_user');
+          localStorage.removeItem('auth_profile');
+        }
+      });
+      return () => {
+        listener?.subscription?.unsubscribe();
+      };
+    }, []);
   const [user, setUser] = useState<User | null>(() => {
     // LocalStorage'dan kullanıcıyı yükle
     const savedUser = localStorage.getItem('auth_user');
@@ -57,64 +76,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const signIn = async (email: string, _password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔐 AuthContext signIn:', email);
-      // Mock mode - create a fake user
-      const mockUser: any = {
-        id: 'mock-user-123',
-        email: email,
-        created_at: new Date().toISOString(),
-      };
-      
-      const mockProfile: UserProfile = {
-        id: 'mock-user-123',
-        user_id: 'mock-user-123',
-        role: 'admin',
-        full_name: email.split('@')[0],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      setUser(mockUser);
-      setProfile(mockProfile);
-      
-      // LocalStorage'a kaydet
-      localStorage.setItem('auth_user', JSON.stringify(mockUser));
-      localStorage.setItem('auth_profile', JSON.stringify(mockProfile));
-
-      console.log('✅ Mock user created and saved:', { email, role: 'admin' });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error };
+      setUser(data.user);
+      setSession(data.session);
+      // Profil sorgusu (örneğin supabase'da profiles tablosu varsa)
+      // const { data: profileData } = await supabase.from('profiles').select('*').eq('user_id', data.user.id).single();
+      // setProfile(profileData);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
       return { error: null };
     } catch (error) {
-      console.log('❌ SignIn error:', error);
       return { error: error as AuthError };
     }
   };
 
-  const signUp = async (email: string, _password: string, metadata?: any) => {
+  const signUp = async (email: string, password: string, metadata?: any) => {
     try {
-      // Mock mode - create a fake user
-      const mockUser: any = {
-        id: 'mock-user-' + Date.now(),
-        email: email,
-        created_at: new Date().toISOString(),
-      };
-      
-      const mockProfile: UserProfile = {
-        id: mockUser.id,
-        user_id: mockUser.id,
-        role: 'user',
-        full_name: metadata?.full_name || email.split('@')[0],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      setUser(mockUser);
-      setProfile(mockProfile);
-      
-      localStorage.setItem('auth_user', JSON.stringify(mockUser));
-      localStorage.setItem('auth_profile', JSON.stringify(mockProfile));
-
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: metadata } });
+      if (error) return { error };
+      setUser(data.user);
+      setSession(data.session);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };
@@ -122,6 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
     setSession(null);

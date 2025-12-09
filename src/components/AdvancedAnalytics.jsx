@@ -7,7 +7,7 @@ const AdvancedAnalytics = ({ data, settings }) => {
   const analytics = useMemo(() => {
     if (!data) return null;
 
-    const { dosyalar, kurumDosyalari, giderler, takipMasraflari, kurumMasraflari } = data;
+    const { dosyalar, kurumHakedisleri, giderler, takipMasraflari, kurumMasraflari } = data;
 
     // Aylık gelir-gider analizi (Son 6 ay)
     const monthlyData = [];
@@ -17,9 +17,14 @@ const AdvancedAnalytics = ({ data, settings }) => {
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' });
 
-      const monthIncome = dosyalar?.filter(d => d.tahsilat_tarihi?.startsWith(monthKey))
+      // Dosya tahsilatları
+      const monthIncomeDosya = dosyalar?.filter(d => d.tahsilat_tarihi?.startsWith(monthKey))
         .reduce((sum, d) => sum + (d.tahsilat || 0), 0) || 0;
-      
+      // Kurum hakedişleri (ödenmişler)
+      const monthIncomeKurum = kurumHakedisleri?.filter(k => k.odendi && k.created_at?.startsWith(monthKey))
+        .reduce((sum, k) => sum + (k.net_hakedis || ((k.tahsil_tutar || 0) * (k.vekalet_orani || 0) / 100)), 0) || 0;
+
+      const monthIncome = monthIncomeDosya + monthIncomeKurum;
       const monthExpenses = giderler?.filter(g => g.tarih?.startsWith(monthKey))
         .reduce((sum, g) => sum + (g.tutar || 0), 0) || 0;
 
@@ -46,15 +51,22 @@ const AdvancedAnalytics = ({ data, settings }) => {
     const categoryData = Object.entries(expenseCategories).map(([name, value]) => ({ name, value }));
 
     // Ortalamalar
-    const avgFileIncome = dosyalar?.length ? 
-      dosyalar.reduce((sum, d) => sum + (d.tahsilat || 0), 0) / dosyalar.length : 0;
-    
+    const allIncomes = [
+      ...(dosyalar?.map(d => d.tahsilat || 0) || []),
+      ...(kurumHakedisleri?.filter(k => k.odendi).map(k => k.net_hakedis || ((k.tahsil_tutar || 0) * (k.vekalet_orani || 0) / 100)) || [])
+    ];
+    const avgFileIncome = allIncomes.length ? allIncomes.reduce((sum, v) => sum + v, 0) / allIncomes.length : 0;
+
     const avgExpense = giderler?.length ?
       giderler.reduce((sum, g) => sum + g.tutar, 0) / giderler.length : 0;
 
-    // Tahsilat oranı
-    const totalFee = dosyalar?.reduce((sum, d) => sum + (d.avukatlik_ucreti || 0), 0) || 0;
-    const totalCollected = dosyalar?.reduce((sum, d) => sum + (d.tahsilat || 0), 0) || 0;
+    // Tahsilat oranı (hem dosya hem kurum)
+    const totalFee =
+      (dosyalar?.reduce((sum, d) => sum + (d.avukatlik_ucreti || 0), 0) || 0) +
+      (kurumHakedisleri?.reduce((sum, k) => sum + ((k.tahsil_tutar || 0) * (k.vekalet_orani || 0) / 100), 0) || 0);
+    const totalCollected =
+      (dosyalar?.reduce((sum, d) => sum + (d.tahsilat || 0), 0) || 0) +
+      (kurumHakedisleri?.filter(k => k.odendi).reduce((sum, k) => sum + (k.net_hakedis || ((k.tahsil_tutar || 0) * (k.vekalet_orani || 0) / 100)), 0) || 0);
     const collectionRate = totalFee > 0 ? (totalCollected / totalFee) * 100 : 0;
 
     return {
@@ -64,7 +76,7 @@ const AdvancedAnalytics = ({ data, settings }) => {
       avgFileIncome,
       avgExpense,
       collectionRate,
-      totalFiles: dosyalar?.length || 0,
+      totalFiles: (dosyalar?.length || 0) + (kurumHakedisleri?.length || 0),
       totalIncome: totalCollected,
       totalExpenses: giderler?.reduce((sum, g) => sum + g.tutar, 0) || 0
     };

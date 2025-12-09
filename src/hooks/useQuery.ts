@@ -6,7 +6,7 @@ import type { Dosya, TakipMasrafi, KurumDosyasi, KurumMasrafi, Gider, AllDataRes
 export const QUERY_KEYS = {
   ALL_DATA: ['allData'],
   DOSYALAR: ['dosyalar'],
-  KURUM_DOSYALARI: ['kurumDosyalari'],
+  KURUM_HAKEDISLERI: ['kurumHakedisleri'],
   TAKIP_MASRAFLARI: ['takipMasraflari'],
   KURUM_MASRAFLARI: ['kurumMasraflari'],
   GIDERLER: ['giderler'],
@@ -30,10 +30,10 @@ export const useDosyalar = (): UseQueryResult<Dosya[]> => {
   });
 };
 
-export const useKurumDosyalari = (): UseQueryResult<KurumDosyasi[]> => {
+export const useKurumHakedisleri = (): UseQueryResult<KurumDosyasi[]> => {
   return useQuery({
-    queryKey: QUERY_KEYS.KURUM_DOSYALARI,
-    queryFn: api.fetchKurumDosyalari,
+    queryKey: QUERY_KEYS.KURUM_HAKEDISLERI,
+    queryFn: api.fetchKurumHakedisleri,
   });
 };
 
@@ -147,46 +147,46 @@ export const useToggleTakipMasrafiPaid = () => {
 // MUTATIONS - KURUM DOSYALARI
 // ============================================
 
-export const useAddKurumDosyasi = () => {
+export const useAddKurumHakedisi = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: api.addKurumDosya,
+    mutationFn: api.addKurumHakedisi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
     },
   });
 };
 
-export const useUpdateKurumDosyasi = () => {
+export const useUpdateKurumHakedisi = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<KurumDosyasi> }) => api.updateKurumDosya(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<KurumDosyasi> }) => api.updateKurumHakedisi(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
     },
   });
 };
 
-export const useDeleteKurumDosyasi = () => {
+export const useDeleteKurumHakedisi = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: api.deleteKurumDosya,
+    mutationFn: api.deleteKurumHakedisi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
     },
   });
 };
 
-export const useToggleKurumDosyasiPaid = () => {
+export const useToggleKurumHakedisiPaid = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, odendi }: { id: string; odendi: boolean }) => api.toggleKurumDosyaPaid(id, odendi),
+    mutationFn: ({ id, odendi }: { id: string; odendi: boolean }) => api.toggleKurumHakedisiPaid(id, odendi),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
     },
   });
 };
@@ -285,7 +285,7 @@ export const useAddData = (type: string) => {
   const hooks = {
     dosyalar: useAddDosya,
     takipMasraflari: useAddTakipMasrafi,
-    kurumDosyalari: useAddKurumDosyasi,
+    kurumHakedisleri: useAddKurumHakedisi,
     kurumMasraflari: useAddKurumMasrafi,
     giderler: useAddGider,
   };
@@ -296,7 +296,7 @@ export const useUpdateData = (type: string) => {
   const hooks = {
     dosyalar: useUpdateDosya,
     takipMasraflari: useUpdateTakipMasrafi,
-    kurumDosyalari: useUpdateKurumDosyasi,
+    kurumHakedisleri: useUpdateKurumHakedisi,
     kurumMasraflari: useUpdateKurumMasrafi,
     giderler: useUpdateGider,
   };
@@ -307,7 +307,7 @@ export const useDeleteData = (type: string) => {
   const hooks = {
     dosyalar: useDeleteDosya,
     takipMasraflari: useDeleteTakipMasrafi,
-    kurumDosyalari: useDeleteKurumDosyasi,
+    kurumHakedisleri: useDeleteKurumHakedisi,
     kurumMasraflari: useDeleteKurumMasrafi,
     giderler: useDeleteGider,
   };
@@ -317,7 +317,7 @@ export const useDeleteData = (type: string) => {
 export const useTogglePaid = (type: string) => {
   const hooks = {
     takipMasraflari: useToggleTakipMasrafiPaid,
-    kurumDosyalari: useToggleKurumDosyasiPaid,
+    kurumHakedisleri: useToggleKurumHakedisiPaid,
     kurumMasraflari: useToggleKurumMasrafiPaid,
   };
   return hooks[type as keyof typeof hooks]();
@@ -329,19 +329,19 @@ export const useTogglePaid = (type: string) => {
 
 export const useAllDataQueries = () => {
   const dosyalarQuery = useDosyalar();
-  const kurumDosyalariQuery = useKurumDosyalari();
+  const kurumHakedisleriQuery = useKurumHakedisleri();
   const takipMasraflariQuery = useTakipMasraflari();
   const kurumMasraflariQuery = useKurumMasraflari();
   const giderlerQuery = useGiderler();
 
   return {
     dosyalar: dosyalarQuery.data || [],
-    kurumDosyalari: kurumDosyalariQuery.data || [],
+    kurumHakedisleri: kurumHakedisleriQuery.data || [],
     takipMasraflari: takipMasraflariQuery.data || [],
     kurumMasraflari: kurumMasraflariQuery.data || [],
     giderler: giderlerQuery.data || [],
     isLoading: false, // Auth olmadığı için loading'i false yapıyoruz
-    isError: dosyalarQuery.isError || kurumDosyalariQuery.isError || takipMasraflariQuery.isError || kurumMasraflariQuery.isError || giderlerQuery.isError,
-    error: dosyalarQuery.error || kurumDosyalariQuery.error || takipMasraflariQuery.error || kurumMasraflariQuery.error || giderlerQuery.error,
+    isError: dosyalarQuery.isError || kurumHakedisleriQuery.isError || takipMasraflariQuery.isError || kurumMasraflariQuery.isError || giderlerQuery.isError,
+    error: dosyalarQuery.error || kurumHakedisleriQuery.error || takipMasraflariQuery.error || kurumMasraflariQuery.error || giderlerQuery.error,
   };
 };

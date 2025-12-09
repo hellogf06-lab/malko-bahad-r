@@ -14,10 +14,14 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
   });
 
   const onFormSubmit = (data) => {
+    const tahsil_tutar = parseFloat(data.tahsil_tutar) || 0;
+    const vekalet_orani = parseFloat(data.vekalet_orani) || 0;
+    const net_hakedis = tahsil_tutar * (vekalet_orani / 100);
     onSubmit({
       ...data,
-      tahsil_tutar: parseFloat(data.tahsil_tutar) || 0,
-      vekalet_orani: parseFloat(data.vekalet_orani) || 0
+      tahsil_tutar,
+      vekalet_orani,
+      net_hakedis
     });
     reset();
   };

@@ -1,10 +1,14 @@
+console.log('App.jsx çalışıyor');
+
 import React, { useState, useMemo, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Download, Upload, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, ChevronUp, ChevronDown, X, Filter, Calendar } from 'lucide-react';
 // Modern ikon stilleri için
 const iconButtonStyle = "rounded-lg shadow-sm border border-gray-200 bg-white hover:bg-gray-50 transition-all flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700";
 import * as XLSX from 'xlsx';
 import { useAuth } from './contexts/AuthContext';
+import Login from './components/auth/Login';
 
 // Components
 import Layout from './components/Layout';
@@ -61,12 +65,84 @@ import { EXPENSE_CATEGORIES, STORAGE_KEY, COLORS } from './utils/constants.ts';
 
 // --- ANA UYGULAMA ---
 const App = () => {
-        // Mobil uyumluluk için responsive hook
-        const { isMobile } = useResponsive();
-      // Kullanıcı ve profil bilgisini AuthContext'ten al
-      const { profile, user, isAdmin } = useAuth();
-    // Kullanıcı yönetimi paneli için state
-    const [showUserManagement, setShowUserManagement] = useState(false);
+  // Kullanıcı ve profil bilgisini AuthContext'ten al
+  const { profile, user, isAdmin } = useAuth();
+  // React Query ile veri çekme (en başa alındı)
+  const { 
+    dosyalar, 
+    kurumHakedisleri, 
+    takipMasraflari, 
+    kurumMasraflari, 
+    giderler,
+    isLoading,
+    isError,
+    error
+  } = useAllDataQueries();
+  // --- HESAPLAMALAR ---
+  const hesaplamalar = useCalculations(dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari);
+  // --- HESAPLAMALAR ---
+  // ...existing code...
+  // Supabase bağlantı testi ve hata paneli
+  const [supabaseStatus, setSupabaseStatus] = useState('');
+  useEffect(() => {
+    (async () => {
+      try {
+        const { error } = await import('./lib/supabase').then(m => m.supabase.from('dosyalar').select('count').limit(1));
+        if (error) setSupabaseStatus('❌ Supabase bağlantı hatası: ' + error.message);
+        else setSupabaseStatus('✅ Supabase bağlantısı başarılı');
+      } catch (err) {
+        setSupabaseStatus('❌ Supabase bağlantı hatası: ' + (err.message || err));
+      }
+    })();
+  }, []);
+
+  // ...existing code...
+  useEffect(() => {
+    if (supabaseStatus.startsWith('❌')) {
+      alert(supabaseStatus);
+    }
+  }, [supabaseStatus]);
+  // Kullanıcı yoksa localStorage'daki eski oturumları temizle
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_profile');
+    }
+  }, [user]);
+  // Kullanıcı ve Supabase user_id debug paneli
+  const debugUserIdPanel = (
+    <div style={{position:'fixed',bottom:0,right:0,zIndex:9999,background:'#fff',color:'#222',padding:12,border:'2px solid #888',borderRadius:8,fontSize:13,boxShadow:'0 2px 8px #0002'}}>
+      <div><b>Aktif Kullanıcı user_id:</b> <span style={{color:'#0070f3'}}>{user?.id || '-'}</span></div>
+      <div><b>Supabase kurumHakedisleri user_id'leri:</b></div>
+      <ul style={{maxHeight:80,overflow:'auto',margin:0,paddingLeft:16}}>
+        {kurumHakedisleri && kurumHakedisleri.length > 0 ? kurumHakedisleri.map((k,i) => (
+          <li key={k.id || i} style={{color:k.user_id===user?.id?'green':'red'}}>
+            {k.user_id || '-'} {k.user_id===user?.id ? '(eşleşiyor)' : '(farklı)'}
+          </li>
+        )) : <li style={{color:'#888'}}>Kayıt yok</li>}
+      </ul>
+    </div>
+  );
+  // DEBUG: Supabase'dan gelen kurumHakedisleri ve hesaplamalar.kurumHakedisler
+  useEffect(() => {
+    console.log('Supabase kurumHakedisleri:', kurumHakedisleri);
+    console.log('Hesaplamalar.kurumHakedisler:', hesaplamalar?.kurumHakedisler);
+  }, [kurumHakedisleri, hesaplamalar]);
+
+  useEffect(() => {
+    console.log('Hesaplamalar.kurumHakedisler:', hesaplamalar?.kurumHakedisler);
+  }, [hesaplamalar]);
+  const [loggedIn, setLoggedIn] = useState(false);
+  // Mobil uyumluluk için responsive hook
+  const { isMobile } = useResponsive();
+
+  // Eğer kullanıcı giriş yapmadıysa login ekranını ZORUNLU göster
+  // Supabase oturumu yoksa login ekranına yönlendir
+  if (!user || !window.localStorage.getItem('auth_user')) {
+    return <Navigate to="/login" replace />;
+  }
+  // Kullanıcı yönetimi paneli için state
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard'); 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
@@ -128,17 +204,7 @@ const App = () => {
     localStorage.setItem('hukuk_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // React Query ile veri çekme
-  const { 
-    dosyalar, 
-    kurumDosyalari, 
-    takipMasraflari, 
-    kurumMasraflari, 
-    giderler,
-    isLoading,
-    isError,
-    error
-  } = useAllDataQueries();
+  // ...existing code...
 
   // Edit mode için state (form componentleri kendi state'lerini yönetecek)
   const [editingItem, setEditingItem] = useState(null);
@@ -153,10 +219,10 @@ const App = () => {
   const deleteLegalExpenseMutation = useDeleteData('takipMasraflari');
   const toggleLegalExpenseMutation = useTogglePaid('takipMasraflari');
   
-  const addInstitutionMutation = useAddData('kurumDosyalari');
-  const updateInstitutionMutation = useUpdateData('kurumDosyalari');
-  const deleteInstitutionMutation = useDeleteData('kurumDosyalari');
-  const toggleInstitutionMutation = useTogglePaid('kurumDosyalari');
+  const addInstitutionMutation = useAddData('kurumHakedisleri');
+  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
+  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
+  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
   
   const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
   const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');
@@ -168,7 +234,7 @@ const App = () => {
   const deleteExpenseMutation = useDeleteData('giderler');
 
   // --- HESAPLAMALAR ---
-  const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
+  // ...existing code...
   const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings);
 
   // Bildirim kontrolü - akıllı bildirimler
@@ -204,7 +270,7 @@ const App = () => {
       }
       
       // 2. BÜYÜK ÖDENMEMİŞ HAKEDİŞLER (50.000 TL üzeri)
-      const buyukHakedisler = kurumDosyalari.filter(k => !k.odendi && (k.net_hakedis || 0) > 50000);
+      const buyukHakedisler = kurumHakedisleri.filter(k => !k.odendi && (k.net_hakedis || 0) > 50000);
       if (buyukHakedisler.length > 0) {
         const toplam = buyukHakedisler.reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
         notifs.push({ 
@@ -215,7 +281,7 @@ const App = () => {
       }
       
       // 3. TOPLAM ÖDENMEMİŞ HAKEDİŞLER
-      const odenmemisHakedisler = kurumDosyalari.filter(k => !k.odendi);
+      const odenmemisHakedisler = kurumHakedisleri.filter(k => !k.odendi);
       if (odenmemisHakedisler.length > 0) {
         const toplam = odenmemisHakedisler.reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
         notifs.push({ 
@@ -248,10 +314,10 @@ const App = () => {
       }
       
       // 6. AKTİF DOSYA SAYISI
-      const aktifDosyalar = dosyalar.length + kurumDosyalari.length;
+      const aktifDosyalar = dosyalar.length + kurumHakedisleri.length;
       notifs.push({ 
         type: 'info', 
-        message: `📁 ${aktifDosyalar} aktif dosya (${dosyalar.length} takip + ${kurumDosyalari.length} kurum)`,
+        message: `📁 ${aktifDosyalar} aktif dosya (${dosyalar.length} takip + ${kurumHakedisleri.length} kurum)`,
         priority: 6
       });
       
@@ -264,7 +330,7 @@ const App = () => {
     if (!isLoading && !isError && hesaplamalar) {
       checkNotifications();
     }
-  }, [kurumDosyalari, takipMasraflari, kurumMasraflari, giderler, dosyalar, hesaplamalar, settings, isLoading, isError]);
+  }, [kurumHakedisleri, takipMasraflari, kurumMasraflari, giderler, dosyalar, hesaplamalar, settings, isLoading, isError]);
 
   // Loading state
   if (isLoading) {
@@ -354,6 +420,7 @@ const App = () => {
   };
 
   const handleInstitutionSubmit = async (data) => {
+    console.log('Form submit edildi:', data);
     try {
       const processedData = {
         ...data,
@@ -517,7 +584,7 @@ const App = () => {
   };
 
   const excelIndir = () => {
-    exportAllData(dosyalar, kurumDosyalari, giderler);
+    exportAllData(dosyalar, kurumHakedisleri, giderler);
     toast.success('Tüm veriler Excel olarak indirildi.');
   };
 
@@ -540,15 +607,18 @@ const App = () => {
   if (isError) {
     return <div style={{padding:40, color:'red', fontWeight:'bold'}}>Hata: {error?.message || 'Veri çekilemedi'} (isError=true)</div>;
   }
-  if (!dosyalar || !kurumDosyalari || !giderler) {
-    return <div style={{padding:40, color:'orange', fontWeight:'bold'}}>Veri eksik! dosyalar/kurumDosyalari/giderler yok.</div>;
+  if (!dosyalar || !kurumHakedisleri || !giderler) {
+    return <div style={{padding:40, color:'orange', fontWeight:'bold'}}>Veri eksik! dosyalar/kurumHakedisleri/giderler yok.</div>;
   }
   // Profil veya context eksikse uyarı
   if (typeof profile === 'undefined') {
     return <div style={{padding:40, color:'purple', fontWeight:'bold'}}>Profil/context eksik! (profile undefined)</div>;
   }
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <>
+      {debugUserIdPanel}
+      {/* Supabase bağlantı paneli kaldırıldı */}
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {/* Sadece adminler için kullanıcı yönetimi erişimi */}
       {profile?.role === 'admin' && (
         <div className="flex justify-end p-4">
@@ -1070,8 +1140,8 @@ const App = () => {
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -1100,7 +1170,7 @@ const App = () => {
               <AdvancedAnalytics 
                 data={{
                   dosyalar,
-                  kurumDosyalari,
+                  kurumHakedisleri,
                   giderler,
                   takipMasraflari,
                   kurumMasraflari
@@ -1498,7 +1568,7 @@ const App = () => {
           <AdvancedAnalytics 
             isOpen={showAnalytics}
             onClose={() => setShowAnalytics(false)}
-            data={{ dosyalar, kurumDosyalari, giderler, takipMasraflari, kurumMasraflari }}
+            data={{ dosyalar, kurumHakedisleri, giderler, takipMasraflari, kurumMasraflari }}
             settings={settings}
           />
         </Modal>
@@ -1527,7 +1597,7 @@ const App = () => {
         <Modal isOpen={showReminders} onClose={() => setShowReminders(false)} title="Hatırlatma Sistemi">
           <ReminderSystem 
             dosyalar={dosyalar}
-            kurumDosyalari={kurumDosyalari}
+            kurumHakedisleri={kurumHakedisleri}
           />
         </Modal>
       )}
@@ -1584,8 +1654,8 @@ const App = () => {
       
       {/* Toast Notifications */}
       <Toaster position="bottom-right" richColors closeButton />
-      
-    </Layout>
+      </Layout>
+    </>
   );
 };
 

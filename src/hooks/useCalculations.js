@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-export const useCalculations = (dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari) => {
+export const useCalculations = (dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari) => {
   return useMemo(() => {
     // 1. Serbest Dosyalar
     const dosyaTahsilat = dosyalar.reduce((sum, d) => sum + (d.tahsil_edilen || 0), 0);
@@ -8,7 +8,7 @@ export const useCalculations = (dosyalar, kurumDosyalari, kurumMasraflari, gider
     const dosyaMasrafIade = takipMasraflari.filter(m => m.odendi).reduce((sum, m) => sum + (m.tutar || 0), 0);
 
     // 2. Kurum İşlemleri
-    const kurumHakedisler = kurumDosyalari.map(k => {
+    const kurumHakedisler = kurumHakedisleri.map(k => {
       const brut = (k.tahsil_tutar || 0) * (k.vekalet_orani || 0) / 100;
       return { ...k, net_hakedis: k.net_hakedis || brut };
     });
@@ -51,5 +51,5 @@ export const useCalculations = (dosyalar, kurumDosyalari, kurumMasraflari, gider
       ofisGiderToplam,
       chartData 
     };
-  }, [dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari]);
+  }, [dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari]);
 };

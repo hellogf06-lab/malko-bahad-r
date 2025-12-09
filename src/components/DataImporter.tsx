@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 const TABLE_OPTIONS = {
   dosyalar: "Serbest Dosyalar",
   giderler: "Ofis Giderleri",
-  kurumDosyalari: "Kurum Hakedişleri"
+  kurumHakedisleri: "Kurum Hakedişleri"
 };
 
 interface DataImporterProps {
