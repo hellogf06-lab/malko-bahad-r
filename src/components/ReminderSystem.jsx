@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toggleKurumHakedisiPaid } from '../services/supabaseApi';
 import { Bell, Calendar, X, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -84,6 +85,19 @@ const ReminderSystem = ({ dosyalar, kurumHakedisleri }) => {
   const dismissReminder = (id) => {
     setReminders(prev => prev.filter(r => r.id !== id));
     markReminderShown(id);
+  };
+
+  // Kurum hakedişi için ödendi güncelleme
+  const handleMarkPaid = async (reminder) => {
+    if (!reminder.id.startsWith('kurum-')) return;
+    const kurumId = parseInt(reminder.id.replace('kurum-', ''));
+    try {
+      await toggleKurumHakedisiPaid(kurumId, true);
+      toast.success('Hakediş ödendi olarak işaretlendi!');
+      dismissReminder(reminder.id);
+    } catch (err) {
+      toast.error('Güncelleme başarısız: ' + (err.message || err));
+    }
   };
 
   const formatPara = (value) => {
@@ -193,6 +207,17 @@ const ReminderSystem = ({ dosyalar, kurumHakedisleri }) => {
                                 : `${reminder.daysUntil} GÜN KALDI`}
                             </span>
                           </div>
+                        )}
+                        {/* Kurum hakedişi için ödendi butonu */}
+                        {reminder.id.startsWith('kurum-') && (
+                          <Button
+                            size="sm"
+                            variant="success"
+                            className="mt-2"
+                            onClick={() => handleMarkPaid(reminder)}
+                          >
+                            Ödendi olarak işaretle
+                          </Button>
                         )}
                       </div>
                     </div>

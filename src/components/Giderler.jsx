@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import ExpenseForm from './forms/ExpenseForm';
+import { addGider } from '../services/supabaseApi';
 import { Plus, Pencil, Trash2, Search, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -13,6 +15,8 @@ import { DropdownMenu, DropdownMenuItem } from './ui/dropdown';
 const Giderler = ({ giderler, formatPara, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleExport = useCallback(() => {
     const success = exportGiderlerToExcel(giderler);
@@ -53,11 +57,33 @@ const Giderler = ({ giderler, formatPara, onEdit, onDelete }) => {
           >
             <Download size={16}/> Excel
           </Button>
-          <Button className="flex items-center gap-1" size="sm">
+          <Button className="flex items-center gap-1" size="sm" onClick={() => setShowForm(true)}>
             <Plus size={16}/> Yeni Gider
           </Button>
         </div>
       </CardHeader>
+      {/* Gider ekleme formu modalı */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg">
+            <ExpenseForm
+              onSubmit={async (data) => {
+                setLoading(true);
+                try {
+                  await addGider(data);
+                  toast.success('Gider başarıyla eklendi!');
+                  setShowForm(false);
+                  // Sayfa yenileme veya veri fetch işlemi burada tetiklenmeli
+                } catch (err) {
+                  toast.error('Gider eklenemedi: ' + (err.message || err));
+                }
+                setLoading(false);
+              }}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        </div>
+      )}
       <CardContent className="p-2">
         <div className="rounded-md border overflow-x-auto">
           <Table>
