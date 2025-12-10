@@ -13,4 +13,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 2000 // KB cinsinden, büyük bundle uyarısı limiti artırıldı
+  }
 })
