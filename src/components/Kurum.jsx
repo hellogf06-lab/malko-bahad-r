@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import InstitutionExpenseForm from './forms/InstitutionExpenseForm';
+import { useAddData } from '../hooks/useQuery';
 import { Plus, Pencil, Trash2, Search, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -13,6 +15,9 @@ import { DropdownMenu, DropdownMenuItem } from './ui/dropdown';
 const Kurum = ({ kurumHakedisler, formatPara, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [showMasrafForm, setShowMasrafForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
 
   const handleExport = useCallback(() => {
     const success = exportKurumToExcel(kurumHakedisler);
@@ -54,19 +59,41 @@ const Kurum = ({ kurumHakedisler, formatPara, onEdit, onDelete }) => {
               <Download size={16} />
               Excel
             </Button>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={() => setShowMasrafForm(true)}>
               <Plus size={16} />
-              Yeni İcra Dosyası
+              Yeni Kurum Masrafı
             </Button>
           </div>
         </CardHeader>
+        {/* Kurum masrafı ekleme formu modalı */}
+        {showMasrafForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg">
+              <InstitutionExpenseForm
+                onSubmit={async (data) => {
+                  setLoading(true);
+                  try {
+                    await addInstitutionExpenseMutation.mutateAsync(data);
+                    toast.success('Kurum masrafı başarıyla eklendi!');
+                    setShowMasrafForm(false);
+                    // Sayfa yenileme veya veri fetch işlemi burada tetiklenmeli
+                  } catch (err) {
+                    toast.error('Kurum masrafı eklenemedi: ' + (err.message || err));
+                  }
+                  setLoading(false);
+                }}
+                onCancel={() => setShowMasrafForm(false)}
+              />
+            </div>
+          </div>
+        )}
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Kurum Adı</TableHead>
-                  <TableHead className="font-semibold">Dosya No</TableHead>
+                  <TableHead className="font-semibold">Hakediş Tarihi</TableHead>
                   <TableHead className="font-semibold text-right">Tahsil Tutarı</TableHead>
                   <TableHead className="font-semibold text-center">Vekalet %</TableHead>
                   <TableHead className="font-semibold text-right">Net Hakediş</TableHead>
@@ -91,7 +118,7 @@ const Kurum = ({ kurumHakedisler, formatPara, onEdit, onDelete }) => {
                           <span>{k.kurum_adi}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{k.dosya_no}</TableCell>
+                      <TableCell>{k.tarih ? k.tarih : (k.created_at ? k.created_at.split('T')[0] : '-')}</TableCell>
                       <TableCell className="text-right">{formatPara(k.tahsil_tutar)}</TableCell>
                       <TableCell className="text-center">{k.vekalet_orani}%</TableCell>
                       <TableCell className="text-right font-bold text-blue-600">{formatPara(k.net_hakedis)}</TableCell>

@@ -20,7 +20,6 @@ export const testSupabaseConnection = async () => {
   try {
     const { error } = await supabase.from('dosyalar').select('count').limit(1);
     if (error) throw error;
-    console.log('✅ Supabase bağlantısı başarılı');
     return true;
   } catch (error) {
     console.error('❌ Supabase bağlantı hatası:', error);

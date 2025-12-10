@@ -6,7 +6,7 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: initialData || {
       kurum_adi: '',
-      dosya_no: '',
+      hakedis_tarihi: new Date().toISOString().split('T')[0],
       tahsil_tutar: 0,
       vekalet_orani: 10,
       notes: ''
@@ -57,24 +57,20 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
             )}
           </div>
 
-          {/* Dosya No */}
+          {/* Hakediş Tarihi */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Dosya No <span className="text-red-500">*</span>
+              Hakediş Tarihi <span className="text-red-500">*</span>
             </label>
             <input
-              type="text"
-              {...register('dosya_no', { 
-                required: 'Dosya numarası zorunludur',
-                minLength: { value: 2, message: 'En az 2 karakter olmalıdır' }
-              })}
-              placeholder="Örn: 2024/001"
+              type="date"
+              {...register('hakedis_tarihi', { required: 'Hakediş tarihi zorunludur' })}
               className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.dosya_no ? 'border-red-500' : 'border-gray-300'
+                errors.hakedis_tarihi ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.dosya_no && (
-              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.dosya_no.message}</p>
+            {errors.hakedis_tarihi && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.hakedis_tarihi.message}</p>
             )}
           </div>
         </div>

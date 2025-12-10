@@ -1,3 +1,4 @@
+import { DetailField } from './components/ui/drawer';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, Upload, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, ChevronUp, ChevronDown, X, Filter, Calendar } from 'lucide-react';
@@ -111,10 +112,10 @@ const App = () => {
   const deleteLegalExpenseMutation = useDeleteData('takipMasraflari');
   const toggleLegalExpenseMutation = useTogglePaid('takipMasraflari');
   
-  const addInstitutionMutation = useAddData('kurumDosyalari');
-  const updateInstitutionMutation = useUpdateData('kurumDosyalari');
-  const deleteInstitutionMutation = useDeleteData('kurumDosyalari');
-  const toggleInstitutionMutation = useTogglePaid('kurumDosyalari');
+  const addInstitutionMutation = useAddData('kurumHakedisleri');
+  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
+  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
+  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
   
   const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
   const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');

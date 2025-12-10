@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format as formatDate, setMonth, setYear } from "date-fns";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Gavel, Wallet, Calendar as CalendarIcon } from "lucide-react";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
-export function CalendarView({ files = [], expenses = [] }) {
+export function CalendarView({ files = [], expenses = [], kurumHakedisleri = [], kurumMasraflari = [] }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // 1. Ayın Günlerini Hesapla
@@ -18,11 +19,11 @@ export function CalendarView({ files = [], expenses = [] }) {
 
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
-  // 2. Verileri Birleştir (Duruşmalar + Giderler)
+  // 2. Verileri Birleştir (Duruşmalar + Giderler + Kurum Hakedişi + Kurum Masrafı)
   const getEventsForDay = (date) => {
     const dayEvents = [];
 
-    // A) Duruşmalar (Mavi) - durusma_tarihi varsa
+    // A) Duruşmalar (Mavi)
     files.forEach(file => {
       if (file.durusma_tarihi) {
         try {
@@ -31,13 +32,12 @@ export function CalendarView({ files = [], expenses = [] }) {
             dayEvents.push({
               id: `file-${file.id}`,
               title: `Duruşma: ${file.dosya_no}`,
-              desc: `${file.muvekkil_adi} - ${file.mahkeme || 'Mahkeme bilgisi yok'}`,
-              type: 'durusma'
+              desc: `Müvekkil: ${file.muvekkil_adi}\nMahkeme: ${file.mahkeme || 'Yok'}\nAçıklama: ${file.aciklama || '-'}\nNot: ${file.notes || '-'}`,
+              type: 'durusma',
+              extra: file
             });
           }
-        } catch (e) {
-          // Geçersiz tarih formatı
-        }
+        } catch (e) {}
       }
     });
 
@@ -49,14 +49,49 @@ export function CalendarView({ files = [], expenses = [] }) {
           if (isSameDay(expDate, date)) {
             dayEvents.push({
               id: `expense-${expense.id}`,
-              title: `Ödeme: ${expense.tutar}₺`,
-              desc: `${expense.aciklama} (${expense.kategori})`,
-              type: 'odeme'
+              title: `Gider: ${expense.kategori}`,
+              desc: `Açıklama: ${expense.aciklama || '-'}\nTutar: ${expense.tutar}₺\nNot: ${expense.notes || '-'}\nÖdeme Durumu: ${expense.odendi ? 'Ödendi' : 'Bekliyor'}`,
+              type: 'odeme',
+              extra: expense
             });
           }
-        } catch (e) {
-          // Geçersiz tarih formatı
-        }
+        } catch (e) {}
+      }
+    });
+
+    // C) Kurum Hakedişleri (Yeşil)
+    kurumHakedisleri.forEach(hakedis => {
+      if (hakedis.hakedis_tarihi) {
+        try {
+          const hakTarih = parseISO(hakedis.hakedis_tarihi);
+          if (isSameDay(hakTarih, date)) {
+            dayEvents.push({
+              id: `kurum-hakedis-${hakedis.id}`,
+              title: `Kurum Hakedişi: ${hakedis.kurum_adi}`,
+              desc: `Dosya No: ${hakedis.dosya_no || '-'}\nTutar: ${hakedis.net_hakedis || hakedis.tahsil_tutar}₺\nVekalet Oranı: %${hakedis.vekalet_orani || '-'}\nNot: ${hakedis.notes || '-'}\nÖdeme Durumu: ${hakedis.odendi ? 'Tahsil Edildi' : 'Bekliyor'}`,
+              type: 'kurum_hakedis',
+              extra: hakedis
+            });
+          }
+        } catch (e) {}
+      }
+    });
+
+    // D) Kurum Masrafları (Turuncu)
+    kurumMasraflari.forEach(masraf => {
+      if (masraf.tarih) {
+        try {
+          const masrafTarih = parseISO(masraf.tarih);
+          if (isSameDay(masrafTarih, date)) {
+            dayEvents.push({
+              id: `kurum-masraf-${masraf.id}`,
+              title: `Kurum Masrafı: ${masraf.masraf_turu}`,
+              desc: `Açıklama: ${masraf.aciklama || '-'}\nTutar: ${masraf.tutar}₺\nNot: ${masraf.notes || '-'}\nÖdeme Durumu: ${masraf.odendi ? 'Ödendi' : 'Tahsil Edilmedi'}`,
+              type: 'kurum_masraf',
+              extra: masraf
+            });
+          }
+        } catch (e) {}
       }
     });
 
@@ -82,6 +117,25 @@ export function CalendarView({ files = [], expenses = [] }) {
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="h-8 w-8">
             <ChevronRight size={18} />
           </Button>
+          {/* Ay/Yıl seçici */}
+          <select
+            className="ml-2 px-2 py-1 border rounded text-sm bg-white"
+            value={currentMonth.getMonth()}
+            onChange={e => setCurrentMonth(setMonth(currentMonth, Number(e.target.value)))}
+          >
+            {[...Array(12).keys()].map(m => (
+              <option key={m} value={m}>{formatDate(new Date(2000, m, 1), "MMMM", { locale: tr })}</option>
+            ))}
+          </select>
+          <select
+            className="ml-2 px-2 py-1 border rounded text-sm bg-white"
+            value={currentMonth.getFullYear()}
+            onChange={e => setCurrentMonth(setYear(currentMonth, Number(e.target.value)))}
+          >
+            {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         </div>
       </CardHeader>
 
@@ -128,30 +182,34 @@ export function CalendarView({ files = [], expenses = [] }) {
                 <div className="space-y-1">
                   {events.slice(0, 2).map((event) => (
                     <HoverCard key={event.id} openDelay={200}>
-                        <HoverCardTrigger asChild>
-                            <div className={`
-                                text-[10px] px-1.5 py-1 rounded truncate cursor-pointer font-medium flex items-center gap-1 transition-all
-                                ${event.type === 'durusma' 
-                                    ? "bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:shadow-sm" 
-                                    : "bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 hover:shadow-sm"
-                                }
-                            `}>
-                                {event.type === 'durusma' ? <Gavel size={10} /> : <Wallet size={10} />}
-                                <span className="truncate">{event.title}</span>
-                            </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-64 z-50 bg-white shadow-xl border-slate-200">
-                            <div className="space-y-2">
-                                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                  {event.type === 'durusma' ? <Gavel size={14} className="text-blue-600" /> : <Wallet size={14} className="text-rose-600" />}
-                                  {event.title}
-                                </h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">{event.desc}</p>
-                                <Badge variant="outline" className="text-[10px] mt-2 bg-slate-50">
-                                    📅 {format(day, "d MMMM yyyy, EEEE", { locale: tr })}
-                                </Badge>
-                            </div>
-                        </HoverCardContent>
+                      <HoverCardTrigger asChild>
+                        <div className={`
+                          text-[10px] px-1.5 py-1 rounded truncate cursor-pointer font-medium flex items-center gap-1 transition-all
+                          ${event.type === 'durusma'
+                            ? "bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:shadow-sm"
+                            : event.type === 'kurum_hakedis'
+                              ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 hover:shadow-sm"
+                              : event.type === 'kurum_masraf'
+                                ? "bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 hover:shadow-sm"
+                                : "bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 hover:shadow-sm"
+                          }
+                        `}>
+                          {event.type === 'durusma' ? <Gavel size={10} /> : event.type === 'kurum_hakedis' ? <Wallet size={10} /> : event.type === 'kurum_masraf' ? <Wallet size={10} /> : <Wallet size={10} />}
+                          <span className="truncate">{event.title}</span>
+                        </div>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-72 z-50 bg-white shadow-xl border-slate-200">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            {event.type === 'durusma' ? <Gavel size={14} className="text-blue-600" /> : event.type === 'kurum_hakedis' ? <Wallet size={14} className="text-green-600" /> : event.type === 'kurum_masraf' ? <Wallet size={14} className="text-orange-600" /> : <Wallet size={14} className="text-rose-600" />}
+                            {event.title}
+                          </h4>
+                          <pre className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{event.desc}</pre>
+                          <Badge variant="outline" className="text-[10px] mt-2 bg-slate-50">
+                            📅 {format(day, "d MMMM yyyy, EEEE", { locale: tr })}
+                          </Badge>
+                        </div>
+                      </HoverCardContent>
                     </HoverCard>
                   ))}
                   

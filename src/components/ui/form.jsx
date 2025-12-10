@@ -3,6 +3,7 @@ import { Controller } from "react-hook-form"
 import { cn } from "../../lib/utils"
 
 const Form = ({ children, ...props }) => {
+  // Tüm props'ları doğrudan <form> elementine aktar
   return <form {...props}>{children}</form>
 }
 

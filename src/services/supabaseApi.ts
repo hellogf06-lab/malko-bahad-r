@@ -270,7 +270,6 @@ export const addGider = async (gider: Omit<Gider, 'id' | 'created_at' | 'updated
     .insert([{ ...gider, user_id: userId }])
     .select()
     .single();
-  
   if (error) throw error;
   return data;
 };

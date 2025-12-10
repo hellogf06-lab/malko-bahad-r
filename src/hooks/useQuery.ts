@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query';
-import * as api from '../services/api';
+import * as api from '../services/supabaseApi';
 import type { Dosya, TakipMasrafi, KurumDosyasi, KurumMasrafi, Gider, AllDataResponse } from '../types';
 
 // Query Keys
@@ -198,7 +198,7 @@ export const useToggleKurumHakedisiPaid = () => {
 export const useAddKurumMasrafi = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: api.addKurumMasraf,
+    mutationFn: api.addKurumMasrafi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_MASRAFLARI });
@@ -231,7 +231,7 @@ export const useDeleteKurumMasrafi = () => {
 export const useToggleKurumMasrafiPaid = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, odendi }: { id: string; odendi: boolean }) => api.toggleKurumMasrafPaid(id, odendi),
+    mutationFn: ({ id, odendi }: { id: number; odendi: boolean }) => api.toggleKurumMasrafiPaid(id, odendi),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_MASRAFLARI });

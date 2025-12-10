@@ -135,10 +135,10 @@ const App = () => {
   const deleteLegalExpenseMutation = useDeleteData('takipMasraflari');
   const toggleLegalExpenseMutation = useTogglePaid('takipMasraflari');
   
-  const addInstitutionMutation = useAddData('kurumDosyalari');
-  const updateInstitutionMutation = useUpdateData('kurumDosyalari');
-  const deleteInstitutionMutation = useDeleteData('kurumDosyalari');
-  const toggleInstitutionMutation = useTogglePaid('kurumDosyalari');
+  const addInstitutionMutation = useAddData('kurumHakedisleri');
+  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
+  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
+  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
   
   const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
   const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');

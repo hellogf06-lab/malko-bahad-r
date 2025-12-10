@@ -1,19 +1,18 @@
-console.log('App.jsx çalışıyor');
-
+import { ExpenseSheet } from './components/forms/ExpenseSheet';
+import Drawer, { DetailField, DrawerBadge } from './components/ui/drawer';
+import { useAuth } from './contexts/AuthContext';
 import React, { useState, useMemo, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Download, Upload, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, ChevronUp, ChevronDown, X, Filter, Calendar } from 'lucide-react';
 // Modern ikon stilleri için
 const iconButtonStyle = "rounded-lg shadow-sm border border-gray-200 bg-white hover:bg-gray-50 transition-all flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700";
 import * as XLSX from 'xlsx';
-import { useAuth } from './contexts/AuthContext';
-import Login from './components/auth/Login';
+
 
 // Components
-import Layout from './components/Layout';
 import Header from './components/Header';
 import Modal from './components/Modal';
+import Alert from './components/Alert';
 import SummaryCard from './components/SummaryCard';
 import SimpleBarChart from './components/SimpleBarChart';
 import PieChart from './components/PieChart';
@@ -24,25 +23,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
-import { HearingReminders } from './components/HearingReminders';
-import { Drawer, DetailField, DrawerBadge } from './components/ui/drawer';
-import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner';
-import TableSkeleton from './components/TableSkeleton';
-import UserManagement from './components/UserManagement';
-
-// Advanced Components
 import { CalendarView } from './components/CalendarView';
-import EmailNotifications from './components/EmailNotifications';
+import { HearingReminders } from './components/HearingReminders';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 import BackupManager from './components/BackupManager';
 import AuditLogViewer from './components/AuditLogViewer';
 import ReminderSystem from './components/ReminderSystem';
+import DataImporter from './components/DataImporter';
 import SettingsPanel from './components/SettingsPanel';
 import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import NotificationCenter from './components/NotificationCenter';
-import FileAttachments from './components/FileAttachments';
-import DataImporter from './components/DataImporter';
+import { Toaster } from 'sonner';
 
 // Form Components
 import FileForm from './components/forms/FileForm';
@@ -50,11 +41,9 @@ import LegalExpenseForm from './components/forms/LegalExpenseForm';
 import InstitutionForm from './components/forms/InstitutionForm';
 import InstitutionExpenseForm from './components/forms/InstitutionExpenseForm';
 import ExpenseForm from './components/forms/ExpenseForm';
-import { ExpenseSheet } from './components/forms/ExpenseSheet';
 
 // Hooks
 import { useAllDataQueries } from './hooks/useQuery';
-import { useResponsive } from './hooks/useResponsive';
 import { useAddData, useUpdateData, useDeleteData, useTogglePaid } from './hooks/useQuery';
 import { useCalculations } from './hooks/useCalculations';
 import { usePDFExport } from './hooks/usePDFExport';
@@ -62,94 +51,81 @@ import { usePDFExport } from './hooks/usePDFExport';
 // Utils
 import { formatPara, searchInObject, sortData, isDateInRange } from './utils/helpers.ts';
 import { EXPENSE_CATEGORIES, STORAGE_KEY, COLORS } from './utils/constants.ts';
+import Layout from './components/Layout.jsx';
 
 // --- ANA UYGULAMA ---
 const App = () => {
-  // Kullanıcı ve profil bilgisini AuthContext'ten al
-  const { profile, user, isAdmin } = useAuth();
-  // React Query ile veri çekme (en başa alındı)
-  const { 
-    dosyalar, 
-    kurumHakedisleri, 
-    takipMasraflari, 
-    kurumMasraflari, 
-    giderler,
-    isLoading,
-    isError,
-    error
-  } = useAllDataQueries();
-  // --- HESAPLAMALAR ---
-  const hesaplamalar = useCalculations(dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari);
-  // Supabase bağlantı testi ve hata paneli
-  const [supabaseStatus, setSupabaseStatus] = useState('');
-  useEffect(() => {
-    (async () => {
-      try {
-        const { error } = await import('./lib/supabase').then(m => m.supabase.from('dosyalar').select('count').limit(1));
-        if (error) setSupabaseStatus('❌ Supabase bağlantı hatası: ' + error.message);
-        else setSupabaseStatus('✅ Supabase bağlantısı başarılı');
-      } catch (err) {
-        setSupabaseStatus('❌ Supabase bağlantı hatası: ' + (err.message || err));
+                                                      // Excel/CSV veri yükleyici modalı için state
+                                                      const [showImporter, setShowImporter] = useState(false);
+                                                      // Hatırlatma sistemi modalı için state
+                                                      const [showReminders, setShowReminders] = useState(false);
+                                                      // Klavye kısayolları yardım modalı için state
+                                                      const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+                                    // İşlem geçmişi (audit log) modalı için state
+                                    const [showAuditLog, setShowAuditLog] = useState(false);
+                  // Analitik modalı için state
+                  const [showAnalytics, setShowAnalytics] = useState(false);
+                  // Yedekleme yöneticisi modalı için state
+                  const [showBackupManager, setShowBackupManager] = useState(false);
+                // E-posta ayarları modalı için state
+                const [showEmailSettings, setShowEmailSettings] = useState(false);
+              // Takvim/ajanda modalı için state
+              const [showCalendar, setShowCalendar] = useState(false);
+            // Gider ekle/düzenle submit handler
+            const handleExpenseSubmit = (data) => {
+              if (editingItem) {
+                updateExpenseMutation.mutate({ ...editingItem, ...data });
+              } else {
+                addExpenseMutation.mutate(data);
+              }
+              setShowNewExpenseModal(false);
+              setEditingItem(null);
+            };
+          // Takip Masrafı ekle/düzenle submit handler
+          const handleLegalExpenseSubmit = (data) => {
+            if (editingItem) {
+              updateLegalExpenseMutation.mutate({ ...editingItem, ...data });
+            } else {
+              addLegalExpenseMutation.mutate(data);
+            }
+            setShowNewLegalExpenseModal(false);
+            setEditingItem(null);
+          };
+        // Dosya ekle/düzenle submit handler
+        const handleFileSubmit = (data) => {
+          if (editingItem) {
+            updateFileMutation.mutate({ ...editingItem, ...data });
+          } else {
+            addFileMutation.mutate(data);
+          }
+          setShowNewFileModal(false);
+          setEditingItem(null);
+        };
+      // Kurum Masrafı ekle/düzenle submit handler
+      const handleInstitutionExpenseSubmit = (data) => {
+        if (editingItem) {
+          updateInstitutionExpenseMutation.mutate({ ...editingItem, ...data });
+        } else {
+          addInstitutionExpenseMutation.mutate(data);
+        }
+        setShowNewInstitutionExpenseModal(false);
+        setEditingItem(null);
+      };
+    // Kurum Hakedişi ekle/düzenle submit handler
+    const handleInstitutionSubmit = (data) => {
+      if (editingItem) {
+        updateInstitutionMutation.mutate({ ...editingItem, ...data });
+      } else {
+        addInstitutionMutation.mutate(data);
       }
-    })();
-  }, []);
-
-  // ...existing code...
-  useEffect(() => {
-    if (supabaseStatus.startsWith('❌')) {
-      alert(supabaseStatus);
-    }
-  }, [supabaseStatus]);
-  // Kullanıcı yoksa localStorage'daki eski oturumları temizle
-  useEffect(() => {
-    if (!user) {
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_profile');
-    }
-  }, [user]);
-  // Kullanıcı ve Supabase user_id debug paneli
-  const debugUserIdPanel = (
-    <div style={{position:'fixed',bottom:0,right:0,zIndex:9999,background:'#fff',color:'#222',padding:12,border:'2px solid #888',borderRadius:8,fontSize:13,boxShadow:'0 2px 8px #0002'}}>
-      <div><b>Aktif Kullanıcı user_id:</b> <span style={{color:'#0070f3'}}>{user?.id || '-'}</span></div>
-      <div><b>Supabase kurumHakedisleri user_id'leri:</b></div>
-      <ul style={{maxHeight:80,overflow:'auto',margin:0,paddingLeft:16}}>
-        {kurumHakedisleri && kurumHakedisleri.length > 0 ? kurumHakedisleri.map((k,i) => (
-          <li key={k.id || i} style={{color:k.user_id===user?.id?'green':'red'}}>
-            {k.user_id || '-'} {k.user_id===user?.id ? '(eşleşiyor)' : '(farklı)'}
-          </li>
-        )) : <li style={{color:'#888'}}>Kayıt yok</li>}
-      </ul>
-    </div>
-  );
-  // DEBUG: Supabase'dan gelen kurumHakedisleri ve hesaplamalar.kurumHakedisler
-  useEffect(() => {
-    console.log('Supabase kurumHakedisleri:', kurumHakedisleri);
-    console.log('Hesaplamalar.kurumHakedisler:', hesaplamalar?.kurumHakedisler);
-  }, [kurumHakedisleri, hesaplamalar]);
-
-  useEffect(() => {
-    console.log('Hesaplamalar.kurumHakedisler:', hesaplamalar?.kurumHakedisler);
-  }, [hesaplamalar]);
-  const [loggedIn, setLoggedIn] = useState(false);
-  // Mobil uyumluluk için responsive hook
-  const { isMobile } = useResponsive();
-
-  // Eğer kullanıcı giriş yapmadıysa login ekranını ZORUNLU göster
-  // Supabase oturumu yoksa login ekranına yönlendir
-  if (!user || !window.localStorage.getItem('auth_user')) {
-    return <Navigate to="/login" replace />;
-  }
-  // Kullanıcı yönetimi paneli için state
+      setShowNewInstitutionModal(false);
+      setEditingItem(null);
+    };
+  const { profile, user } = useAuth();
   const [showUserManagement, setShowUserManagement] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard'); 
+  const [activeTab, setActiveTab] = useState('kurum'); 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  // Mobilde sidebar'ı otomatik kapalı başlat
-  useEffect(() => {
-    if (isMobile) setSidebarOpen(false);
-    else setSidebarOpen(true);
-  }, [isMobile]);
-
   // Modals
   const [showNewFileModal, setShowNewFileModal] = useState(false);
   const [showNewLegalExpenseModal, setShowNewLegalExpenseModal] = useState(false);
@@ -157,19 +133,10 @@ const App = () => {
   const [showNewInstitutionExpenseModal, setShowNewInstitutionExpenseModal] = useState(false);
   const [showNewExpenseModal, setShowNewExpenseModal] = useState(false);
   
-  // Advanced Feature Modals
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showEmailSettings, setShowEmailSettings] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showBackupManager, setShowBackupManager] = useState(false);
-  const [showAuditLog, setShowAuditLog] = useState(false);
-  const [showReminders, setShowReminders] = useState(false);
-  const [showImporter, setShowImporter] = useState(false);
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
-  
   const [detailModal, setDetailModal] = useState({ isOpen: false, item: null, type: null });
   const [editMode, setEditMode] = useState(false);
   
+  const [alert, setAlert] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   
@@ -202,7 +169,17 @@ const App = () => {
     localStorage.setItem('hukuk_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // ...existing code...
+  // React Query ile veri çekme
+  const { 
+    dosyalar, 
+    kurumHakedisleri: kurumHakedisleri, 
+    takipMasraflari, 
+    kurumMasraflari, 
+    giderler,
+    isLoading,
+    isError,
+    error
+  } = useAllDataQueries();
 
   // Edit mode için state (form componentleri kendi state'lerini yönetecek)
   const [editingItem, setEditingItem] = useState(null);
@@ -232,7 +209,8 @@ const App = () => {
   const deleteExpenseMutation = useDeleteData('giderler');
 
   // --- HESAPLAMALAR ---
-  const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings);
+  const hesaplamalar = useCalculations(dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari);
+  const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
 
   // Bildirim kontrolü - akıllı bildirimler
   useEffect(() => {
@@ -267,7 +245,7 @@ const App = () => {
       }
       
       // 2. BÜYÜK ÖDENMEMİŞ HAKEDİŞLER (50.000 TL üzeri)
-      const buyukHakedisler = kurumHakedisleri.filter(k => !k.odendi && (k.net_hakedis || 0) > 50000);
+      const buyukHakedisler = kurumDosyalari.filter(k => !k.odendi && (k.net_hakedis || 0) > 50000);
       if (buyukHakedisler.length > 0) {
         const toplam = buyukHakedisler.reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
         notifs.push({ 
@@ -278,7 +256,7 @@ const App = () => {
       }
       
       // 3. TOPLAM ÖDENMEMİŞ HAKEDİŞLER
-      const odenmemisHakedisler = kurumHakedisleri.filter(k => !k.odendi);
+      const odenmemisHakedisler = kurumDosyalari.filter(k => !k.odendi);
       if (odenmemisHakedisler.length > 0) {
         const toplam = odenmemisHakedisler.reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
         notifs.push({ 
@@ -301,207 +279,11 @@ const App = () => {
       
       // 5. ÖDENMEMİŞ MASRAFLAR
       const odenmemisMasraflar = [...takipMasraflari, ...kurumMasraflari].filter(m => !m.odendi);
-      if (odenmemisMasraflar.length > 0) {
-        const toplam = odenmemisMasraflar.reduce((sum, m) => sum + parseFloat(m.tutar || 0), 0);
-        notifs.push({ 
-          type: 'warning', 
-          message: `📌 ${odenmemisMasraflar.length} ödenmemiş masraf (${formatPara(toplam, settings.currency)})`,
-          priority: 5
-        });
-      }
-      
-      // 6. AKTİF DOSYA SAYISI
-      const aktifDosyalar = dosyalar.length + kurumHakedisleri.length;
-      notifs.push({ 
-        type: 'info', 
-        message: `📁 ${aktifDosyalar} aktif dosya (${dosyalar.length} takip + ${kurumHakedisleri.length} kurum)`,
-        priority: 6
-      });
-      
-      // Priority'e göre sırala (düşük sayı = yüksek öncelik)
-      notifs.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-      
-      setNotifications(notifs);
+      // ... diğer bildirimler ...
     };
-    
-    if (!isLoading && !isError && hesaplamalar) {
-      checkNotifications();
-    }
-  }, [kurumHakedisleri, takipMasraflari, kurumMasraflari, giderler, dosyalar, hesaplamalar, settings, isLoading, isError]);
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className={`flex flex-col h-screen ${isMobile ? 'text-sm' : ''}`}>
-        <Header 
-          toggleSidebar={() => setSidebarOpen((v) => !v)}
-          sidebarOpen={sidebarOpen}
-          activeTab="overview"
-          onTabChange={() => {}}
-        />
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar Skeleton */}
-          {sidebarOpen && (
-            <div className={`bg-slate-900 border-r border-slate-800 ${isMobile ? 'w-16' : 'w-64'}`} />
-          )}
-          {/* Main Content with TableSkeleton */}
-          <div className={`flex-1 overflow-auto bg-slate-50 ${isMobile ? 'p-2' : ''}`}>
-            <TableSkeleton />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (isError) {
-    return (
-      <div className={`flex justify-center items-center h-screen text-lg text-red-600 ${isMobile ? 'text-base' : ''}`}>
-        <div className="text-center p-6 bg-red-100 rounded-xl">
-          <p className="font-bold mb-2">❌ Hata Oluştu</p>
-          <p>{error?.message || 'Veriler yüklenirken bir hata oluştu'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // --- FORM ACTIONS (React Hook Form ile) ---
-  const handleFileSubmit = async (data) => {
-    try {
-      if (editingItem) {
-        await updateFileMutation.mutateAsync({ id: editingItem.id, data });
-        toast.success('Dosya başarıyla güncellendi', {
-          description: `${data.dosyaNo} numaralı dosya düzenlendi`
-        });
-      } else {
-        await addFileMutation.mutateAsync(data);
-        toast.success('Dosya başarıyla eklendi', {
-          description: `${data.dosyaNo} numaralı dosya oluşturuldu`
-        });
-      }
-      setShowNewFileModal(false);
-      setEditingItem(null);
-    } catch (error) {
-      toast.error('İşlem başarısız', {
-        description: error.message || 'Bir hata oluştu'
-      });
-    }
-  };
-
-  const handleLegalExpenseSubmit = async (data) => {
-    try {
-      const processedData = {
-        ...data,
-        dosyaId: parseInt(data.dosyaId),
-        odendi: editingItem?.odendi || false
-      };
-      
-      if (editingItem) {
-        await updateLegalExpenseMutation.mutateAsync({ id: editingItem.id, data: processedData });
-        toast.success('Masraf başarıyla güncellendi', {
-          description: 'Dosya masrafı düzenlendi'
-        });
-      } else {
-        await addLegalExpenseMutation.mutateAsync(processedData);
-        toast.success('Masraf başarıyla eklendi', {
-          description: 'Yeni dosya masrafı oluşturuldu'
-        });
-      }
-      setShowNewLegalExpenseModal(false);
-      setEditingItem(null);
-    } catch (error) {
-      toast.error('İşlem başarısız', {
-        description: error.message || 'Bir hata oluştu'
-      });
-    }
-  };
-
-  const handleInstitutionSubmit = async (data) => {
-    console.log('Form submit edildi:', data);
-    try {
-      const processedData = {
-        ...data,
-        odendi: editingItem?.odendi || false
-      };
-      
-      if (editingItem) {
-        await updateInstitutionMutation.mutateAsync({ id: editingItem.id, data: processedData });
-        toast.success('Tahsilat başarıyla güncellendi', {
-          description: 'Kurum hakediş kaydı düzenlendi'
-        });
-      } else {
-        await addInstitutionMutation.mutateAsync(processedData);
-        toast.success('Tahsilat başarıyla eklendi', {
-          description: 'Yeni kurum hakediş kaydı oluşturuldu'
-        });
-      }
-      setShowNewInstitutionModal(false);
-      setEditingItem(null);
-    } catch (error) {
-      toast.error('İşlem başarısız', {
-        description: error.message || 'Bir hata oluştu'
-      });
-    }
-  };
-
-  const handleInstitutionExpenseSubmit = async (data) => {
-    try {
-      const processedData = {
-        ...data,
-        odendi: editingItem?.odendi || false
-      };
-      
-      if (editingItem) {
-        await updateInstitutionExpenseMutation.mutateAsync({ id: editingItem.id, data: processedData });
-        toast.success('Masraf başarıyla güncellendi', {
-          description: 'Kurum masraf kaydı düzenlendi'
-        });
-      } else {
-        await addInstitutionExpenseMutation.mutateAsync(processedData);
-        toast.success('Masraf başarıyla eklendi', {
-          description: 'Yeni kurum masraf kaydı oluşturuldu'
-        });
-      }
-      setShowNewInstitutionExpenseModal(false);
-      setEditingItem(null);
-    } catch (error) {
-      toast.error('İşlem başarısız', {
-        description: error.message || 'Bir hata oluştu'
-      });
-    }
-  };
-
-  const handleExpenseSubmit = async (data) => {
-    try {
-      // ExpenseSheet'ten gelen veriyi API formatına çevir
-      const formattedData = {
-        aciklama: data.title,
-        tutar: data.amount,
-        kategori: data.category,
-        tarih: data.date instanceof Date ? data.date.toISOString().split('T')[0] : data.date,
-        belge_no: data.docNo || null,
-        // file handling burada eklenebilir
-      };
-
-      if (editingItem) {
-        await updateExpenseMutation.mutateAsync({ id: editingItem.id, data: formattedData });
-        toast.success('Gider başarıyla güncellendi', {
-          description: 'Ofis gideri düzenlendi'
-        });
-      } else {
-        await addExpenseMutation.mutateAsync(formattedData);
-        toast.success('Gider başarıyla eklendi', {
-          description: 'Yeni ofis gideri oluşturuldu'
-        });
-      }
-      setShowNewExpenseModal(false);
-      setEditingItem(null);
-    } catch (error) {
-      toast.error('İşlem başarısız', {
-        description: error.message || 'Bir hata oluştu'
-      });
-    }
-  };
+    // useEffect'in sonunda fonksiyon çağrısı veya başka bir işlem olabilir
+    // Örneğin: checkNotifications();
+  }, [settings, hesaplamalar, dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari]);
 
   const openDetailModal = (item, type) => {
     setDetailModal({ isOpen: true, item, type });
@@ -611,11 +393,24 @@ const App = () => {
   if (typeof profile === 'undefined') {
     return <div style={{padding:40, color:'purple', fontWeight:'bold'}}>Profil/context eksik! (profile undefined)</div>;
   }
+  // Kullanıcı ve Supabase user_id debug paneli
+  const debugUserIdPanel = (
+    <div style={{position:'fixed',bottom:0,right:0,zIndex:9999,background:'#fff',color:'#222',padding:12,border:'2px solid #888',borderRadius:8,fontSize:13,boxShadow:'0 2px 8px #0002'}}>
+      <div><b>Aktif Kullanıcı user_id:</b> <span style={{color:'#0070f3'}}>{user?.id || '-'}</span></div>
+      <div><b>Supabase kurumHakedisleri user_id'leri:</b></div>
+      <ul style={{maxHeight:80,overflow:'auto',margin:0,paddingLeft:16}}>
+        {kurumHakedisleri && kurumHakedisleri.length > 0 ? kurumHakedisleri.map((k,i) => (
+          <li key={k.id || i} style={{color:k.user_id===user?.id?'green':'red'}}>
+            {k.user_id || '-'} {k.user_id===user?.id ? '(eşleşiyor)' : '(farklı)'}
+          </li>
+        )) : <li style={{color:'#888'}}>Kayıt yok</li>}
+      </ul>
+    </div>
+  );
   return (
-    <>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {debugUserIdPanel}
       {/* Supabase bağlantı paneli kaldırıldı */}
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {/* Sadece adminler için kullanıcı yönetimi erişimi */}
       {profile?.role === 'admin' && (
         <div className="flex justify-end p-4">
@@ -750,13 +545,9 @@ const App = () => {
                                     </TableHeader>
                                     <TableBody>
                                         {sortData(
-                                            hesaplamalar.kurumHakedisler.filter(k => {
-                                                if (statusFilter === 'paid' && !k.odendi) return false;
-                                                if (statusFilter === 'unpaid' && k.odendi) return false;
-                                                return searchInObject(k, searchTerm);
-                                            }),
-                                            sortConfig.key,
-                                            sortConfig.direction
+                                          hesaplamalar.kurumHakedisler.filter(k => searchInObject(k, searchTerm)),
+                                          sortConfig.key,
+                                          sortConfig.direction
                                         ).map(k => (
                                             <TableRow key={k.id} className={k.odendi ? 'bg-indigo-50' : ''}>
                                                 <TableCell className="text-center">
@@ -768,12 +559,12 @@ const App = () => {
                                                     />
                                                 </TableCell>
                                                 <TableCell className="font-medium">{k.kurum_adi}</TableCell>
-                                                <TableCell className="text-gray-500">{k.dosya_no}</TableCell>
+                                                <TableCell className="text-gray-500">{k.hakedis_tarihi || '-'}</TableCell>
                                                 <TableCell className="text-right font-bold text-indigo-600">{formatPara(k.net_hakedis, settings.currency)}</TableCell>
                                                 <TableCell className="text-xs text-gray-500 max-w-[120px] truncate">{k.notes ? (k.notes.length > 20 ? k.notes.substring(0, 20) + '...' : k.notes) : '-'}</TableCell>
                                                 <TableCell className="text-center">
                                                     <button 
-                                                        onClick={() => toggleInstitutionMutation.mutate(k.id)} 
+                                                      onClick={() => toggleInstitutionMutation.mutate({ id: k.id, odendi: !k.odendi })} 
                                                         className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1 w-full transition-all ${
                                                             k.odendi 
                                                                 ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
@@ -842,7 +633,7 @@ const App = () => {
                                                 <TableCell className="text-xs text-gray-500 max-w-[120px] truncate">{m.notes ? (m.notes.length > 20 ? m.notes.substring(0, 20) + '...' : m.notes) : '-'}</TableCell>
                                                 <TableCell className="text-center">
                                                     <button 
-                                                        onClick={() => toggleInstitutionExpenseMutation.mutate(m.id)} 
+                                                      onClick={() => toggleInstitutionExpenseMutation.mutate({ id: m.id, odendi: !m.odendi })} 
                                                         className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1 w-full transition-all ${
                                                             m.odendi 
                                                                 ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
@@ -978,7 +769,7 @@ const App = () => {
                                                     <TableCell className="text-xs text-gray-500 max-w-[120px] truncate">{m.notes ? (m.notes.length > 20 ? m.notes.substring(0, 20) + '...' : m.notes) : '-'}</TableCell>
                                                     <TableCell className="text-center">
                                                         <button 
-                                                            onClick={() => toggleLegalExpenseMutation.mutate(m.id)} 
+                                                          onClick={() => toggleLegalExpenseMutation.mutate({ id: m.id, odendi: !m.odendi })} 
                                                             className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1 w-full transition-all ${
                                                                 m.odendi 
                                                                     ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
@@ -1153,7 +944,7 @@ const App = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CalendarView files={dosyalar} expenses={giderler} />
+                  <CalendarView files={dosyalar} expenses={giderler} kurumHakedisleri={kurumHakedisleri} />
                 </CardContent>
               </Card>
               
@@ -1546,6 +1337,8 @@ const App = () => {
           <CalendarView 
             files={dosyalar}
             expenses={giderler}
+            kurumHakedisleri={kurumHakedisleri}
+            kurumMasraflari={kurumMasraflari}
           />
         </Modal>
       )}
@@ -1614,7 +1407,7 @@ const App = () => {
               <DataImporter 
                 isOpen={showImporter}
                 onClose={() => setShowImporter(false)}
-                onImport={(data) => console.log('İçe aktarılan veri:', data)}
+                onImport={() => {}}
               />
             </div>
           </div>
@@ -1651,8 +1444,7 @@ const App = () => {
       
       {/* Toast Notifications */}
       <Toaster position="bottom-right" richColors closeButton />
-      </Layout>
-    </>
+    </Layout>
   );
 };
 

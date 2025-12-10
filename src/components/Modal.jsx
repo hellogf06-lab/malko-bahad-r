@@ -14,10 +14,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
+  // Overlay click ile modalı kapatma devre dışı
+  const handleOverlayClick = () => {
+    // Artık overlay'e tıklayınca modal kapanmaz
   };
 
   return createPortal(
@@ -38,6 +37,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
       onClick={handleOverlayClick}
     >
       <div 
+        data-modal-box
         style={{
           backgroundColor: 'white',
           borderRadius: '12px',
@@ -47,6 +47,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
           maxHeight: '90vh',
           overflowY: 'auto'
         }}
+        onClick={e => e.stopPropagation()}
       >
         <div style={{ 
           display: 'flex', 
