@@ -403,7 +403,7 @@ const App = () => {
           <li key={k.id || i} style={{color:k.user_id===user?.id?'green':'red'}}>
             {k.user_id || '-'} {k.user_id===user?.id ? '(eşleşiyor)' : '(farklı)'}
           </li>
-        )) : <li style={{color:'#888'}}>Kayıt yok</li>}
+        )) : <li style={{color:'#888'}}>{user?.id || '-'} (aktif kullanıcı)</li>}
       </ul>
     </div>
   );
@@ -654,7 +654,11 @@ const App = () => {
                                                     </button>
                                                 </TableCell>
                                                 <TableCell className="text-center">
-                                                    <button onClick={() => deleteInstitutionExpenseMutation.mutate(m.id)} className="text-red-300 hover:text-red-600 transition-colors">
+                                                    <button onClick={() => {
+                                                      if (window.confirm('Bu kurum masrafı silinsin mi?')) {
+                                                        deleteInstitutionExpenseMutation.mutate(m.id);
+                                                      }
+                                                    }} className="text-red-300 hover:text-red-600 transition-colors">
                                                         <Trash2 size={16}/>
                                                     </button>
                                                 </TableCell>
