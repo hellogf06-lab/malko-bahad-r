@@ -14,6 +14,14 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 2000 // KB cinsinden, büyük bundle uyarısı limiti artırıldı
+    chunkSizeWarningLimit: 2000, // KB cinsinden, büyük bundle uyarısı limiti artırıldı
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          vendor: ['xlsx', 'html2canvas', 'date-fns']
+        }
+      }
+    }
   }
 })
