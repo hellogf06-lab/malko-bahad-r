@@ -97,19 +97,6 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
         </div>
       </div>
 
-              step="0.01"
-              {...register('tahsil_tutar', {
-                required: 'Tahsil tutarı zorunludur',
-                min: { value: 0, message: 'Negatif değer girilemez' }
-              })}
-              placeholder="0.00"
-              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.tahsil_tutar ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.tahsil_tutar && (
-              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.tahsil_tutar.message}</p>
-            )}
           </div>
 
           {/* Vekalet Oranı */}
