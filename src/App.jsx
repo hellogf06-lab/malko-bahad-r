@@ -295,7 +295,7 @@ const App = () => {
   const deleteExpenseMutation = useDeleteData('giderler');
 
   // --- HESAPLAMALAR ---
-  const hesaplamalar = useCalculations(dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari);
+  const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
   const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
 
   // Bildirim kontrolü - akıllı bildirimler
