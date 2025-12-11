@@ -17,11 +17,15 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
     const tahsil_tutar = parseFloat(data.tahsil_tutar) || 0;
     const vekalet_orani = parseFloat(data.vekalet_orani) || 0;
     const net_hakedis = tahsil_tutar * (vekalet_orani / 100);
+    // Sadece tabloya uygun alanları gönder
     onSubmit({
-      ...data,
+      kurum_adi: data.kurum_adi,
+      dosya_no: data.dosya_no || '',
       tahsil_tutar,
       vekalet_orani,
-      net_hakedis
+      net_hakedis,
+      odendi: false,
+      notes: data.notes || ''
     });
     reset();
   };

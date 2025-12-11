@@ -6,7 +6,7 @@ import type { Dosya, TakipMasrafi, KurumDosyasi, KurumMasrafi, Gider, AllDataRes
 export const QUERY_KEYS = {
   ALL_DATA: ['allData'],
   DOSYALAR: ['dosyalar'],
-  KURUM_HAKEDISLERI: ['kurumHakedisleri'],
+  KURUM_HAKEDISLERI: ['kurumDosyalari'],
   TAKIP_MASRAFLARI: ['takipMasraflari'],
   KURUM_MASRAFLARI: ['kurumMasraflari'],
   GIDERLER: ['giderler'],
@@ -335,19 +335,19 @@ export const useTogglePaid = (type: string) => {
 
 export const useAllDataQueries = () => {
   const dosyalarQuery = useDosyalar();
-  const kurumHakedisleriQuery = useKurumHakedisleri();
+  const kurumDosyalariQuery = useKurumHakedisleri();
   const takipMasraflariQuery = useTakipMasraflari();
   const kurumMasraflariQuery = useKurumMasraflari();
   const giderlerQuery = useGiderler();
 
   return {
     dosyalar: dosyalarQuery.data || [],
-    kurumHakedisleri: kurumHakedisleriQuery.data || [],
+    kurumDosyalari: kurumDosyalariQuery.data || [],
     takipMasraflari: takipMasraflariQuery.data || [],
     kurumMasraflari: kurumMasraflariQuery.data || [],
     giderler: giderlerQuery.data || [],
     isLoading: false, // Auth olmadığı için loading'i false yapıyoruz
-    isError: dosyalarQuery.isError || kurumHakedisleriQuery.isError || takipMasraflariQuery.isError || kurumMasraflariQuery.isError || giderlerQuery.isError,
-    error: dosyalarQuery.error || kurumHakedisleriQuery.error || takipMasraflariQuery.error || kurumMasraflariQuery.error || giderlerQuery.error,
+    isError: dosyalarQuery.isError || kurumDosyalariQuery.isError || takipMasraflariQuery.isError || kurumMasraflariQuery.isError || giderlerQuery.isError,
+    error: dosyalarQuery.error || kurumDosyalariQuery.error || takipMasraflariQuery.error || kurumMasraflariQuery.error || giderlerQuery.error,
   };
 };

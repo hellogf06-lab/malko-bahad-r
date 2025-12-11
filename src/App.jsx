@@ -91,7 +91,7 @@ const App = () => {
   React.useEffect(() => {
     const tables = [
       'dosyalar',
-      'kurum_hakedisleri',
+      'kurum_dosyalari',
       'kurum_masraflari',
       'takip_masraflari',
       'giderler'
@@ -258,7 +258,7 @@ const App = () => {
   // React Query ile veri çekme
   const { 
     dosyalar, 
-    kurumHakedisleri: kurumHakedisleri, 
+    kurumDosyalari, 
     takipMasraflari, 
     kurumMasraflari, 
     giderler,
@@ -280,10 +280,10 @@ const App = () => {
   const deleteLegalExpenseMutation = useDeleteData('takipMasraflari');
   const toggleLegalExpenseMutation = useTogglePaid('takipMasraflari');
   
-  const addInstitutionMutation = useAddData('kurumHakedisleri');
-  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
-  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
-  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
+  const addInstitutionMutation = useAddData('kurumDosyalari');
+  const updateInstitutionMutation = useUpdateData('kurumDosyalari');
+  const deleteInstitutionMutation = useDeleteData('kurumDosyalari');
+  const toggleInstitutionMutation = useTogglePaid('kurumDosyalari');
   
   const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
   const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');

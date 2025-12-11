@@ -24,7 +24,7 @@ export const fetchAllData = async (): Promise<AllDataResponse> => {
   const [dosyalarRes, takipRes, kurumDosyalariRes, kurumMasraflariRes, giderlerRes] = await Promise.all([
     supabase.from('dosyalar').select('*').eq('user_id', userId),
     supabase.from('takip_masraflari').select('*').eq('user_id', userId),
-    supabase.from('kurum_hakedisleri').select('*').eq('user_id', userId),
+    supabase.from('kurum_dosyalari').select('*').eq('user_id', userId),
     supabase.from('kurum_masraflari').select('*').eq('user_id', userId),
     supabase.from('giderler').select('*').eq('user_id', userId),
   ]);
@@ -150,7 +150,7 @@ export const toggleTakipMasrafiPaid = async (id: number, odendi: boolean): Promi
 export const fetchKurumHakedisleri = async (): Promise<KurumDosyasi[]> => {
   const userId = await getUserId();
   const { data, error } = await supabase
-    .from('kurum_hakedisleri')
+    .from('kurum_dosyalari')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -162,7 +162,7 @@ export const fetchKurumHakedisleri = async (): Promise<KurumDosyasi[]> => {
 export const addKurumHakedisi = async (dosya: Omit<KurumDosyasi, 'id' | 'net_hakedis' | 'created_at' | 'updated_at'>): Promise<KurumDosyasi> => {
   const userId = await getUserId();
   const { data, error } = await supabase
-    .from('kurum_hakedisleri')
+    .from('kurum_dosyalari')
     .insert([{ ...dosya, user_id: userId }])
     .select()
     .single();
@@ -173,7 +173,7 @@ export const addKurumHakedisi = async (dosya: Omit<KurumDosyasi, 'id' | 'net_hak
 
 export const updateKurumHakedisi = async (id: number, updates: Partial<KurumDosyasi>): Promise<KurumDosyasi> => {
   const { data, error } = await supabase
-    .from('kurum_hakedisleri')
+    .from('kurum_dosyalari')
     .update(updates)
     .eq('id', id)
     .select()
@@ -185,7 +185,7 @@ export const updateKurumHakedisi = async (id: number, updates: Partial<KurumDosy
 
 export const deleteKurumHakedisi = async (id: number): Promise<void> => {
   const { error } = await supabase
-    .from('kurum_hakedisleri')
+    .from('kurum_dosyalari')
     .delete()
     .eq('id', id);
   
