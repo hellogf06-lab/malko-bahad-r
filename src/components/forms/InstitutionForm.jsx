@@ -140,68 +140,6 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
         </div>
       </div>
 
-      {/* Form Actions */}
-            {/* Grup 2: Hakediş ve Tutar Bilgileri */}
-            <div className="pb-5 border-b-2 border-gray-200">
-              <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-4">
-                💰 Hakediş ve Tutar Bilgileri
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Hakediş Tarihi */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Hakediş Tarihi <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    {...register('hakedis_tarihi', { required: 'Hakediş tarihi zorunludur' })}
-                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.hakedis_tarihi ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.hakedis_tarihi && (
-                    <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.hakedis_tarihi.message}</p>
-                  )}
-                </div>
-                {/* Tahsil Tutarı */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Tahsil Tutarı <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    {...register('tahsil_tutar', {
-                      required: 'Tahsil tutarı zorunludur',
-                      min: { value: 0, message: 'Negatif değer girilemez' }
-                    })}
-                    placeholder="0.00"
-                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.tahsil_tutar ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.tahsil_tutar && (
-                    <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.tahsil_tutar.message}</p>
-                  )}
-                </div>
-                {/* Vekalet Oranı */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    📊 Vekalet Oranı (%) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    {...register('vekalet_orani', {
-                      required: 'Vekalet oranı zorunludur',
-                      min: { value: 0, message: 'Negatif değer girilemez' },
-                      max: { value: 100, message: 'En fazla 100 olabilir' }
-                    })}
-                    placeholder="10.00"
-                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.vekalet_orani ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.vekalet_orani && (
-                    <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.vekalet_orani.message}</p>
-                  )}
-                </div>
-              </div>
-            </div>
       <div className="flex gap-3 pt-5 border-t-2 border-gray-200">
         <Button
           type="button"
