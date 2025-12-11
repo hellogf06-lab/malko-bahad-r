@@ -97,7 +97,6 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
         </div>
       </div>
 
-              type="number"
               step="0.01"
               {...register('tahsil_tutar', {
                 required: 'Tahsil tutarı zorunludur',
