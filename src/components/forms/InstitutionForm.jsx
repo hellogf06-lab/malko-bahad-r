@@ -46,15 +46,16 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Kurum Adı <span className="text-red-500">*</span>
             </label>
-              <input
-                type="date"
-                {...register('hakedis_tarihi', { required: 'Hakediş tarihi zorunludur' })}
-                className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.hakedis_tarihi ? 'border-red-500' : 'border-gray-300'}`}
-              />
-              {errors.hakedis_tarihi && (
-                <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.hakedis_tarihi.message}</p>
-              )}
-            </div>
+            <input
+              type="text"
+              {...register('kurum_adi', { required: 'Kurum adı zorunludur', minLength: { value: 2, message: 'En az 2 karakter olmalıdır' } })}
+              placeholder="Örn: SGK, İcra Müdürlüğü"
+              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.kurum_adi ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            {errors.kurum_adi && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.kurum_adi.message}</p>
+            )}
+          </div>
             {/* Tahsil Tutarı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -95,32 +96,8 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
               )}
             </div>
         </div>
-      </div>
 
-          {/* Vekalet Oranı */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              📊 Vekalet Oranı (%) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              {...register('vekalet_orani', {
-                required: 'Vekalet oranı zorunludur',
-                min: { value: 0, message: 'Negatif değer girilemez' },
-                max: { value: 100, message: 'En fazla 100 olabilir' }
-              })}
-              placeholder="10.00"
-              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.vekalet_orani ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.vekalet_orani && (
-              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.vekalet_orani.message}</p>
-            )}
-          </div>
         </div>
-      </div>
 
       {/* Grup 3: Ek Bilgiler */}
       <div>
