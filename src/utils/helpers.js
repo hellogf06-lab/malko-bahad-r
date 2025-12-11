@@ -1,10 +1,8 @@
-// Para formatla
-export const formatPara = (tutar, currency = 'TRY') => {
+// Para formatla (sadece sayı, 218.587 gibi)
+export const formatPara = (tutar) => {
   return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(tutar || 0);
 };
 
