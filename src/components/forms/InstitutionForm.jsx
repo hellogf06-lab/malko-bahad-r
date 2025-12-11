@@ -17,10 +17,11 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
     const tahsil_tutar = parseFloat(data.tahsil_tutar) || 0;
     const vekalet_orani = parseFloat(data.vekalet_orani) || 0;
     const net_hakedis = tahsil_tutar * (vekalet_orani / 100);
-    // Sadece tabloya uygun alanları gönder
+    // dosya_no zorunlu, boşsa otomatik üret
+    let dosya_no = data.dosya_no && data.dosya_no.trim() !== '' ? data.dosya_no : `KURUM-${Date.now()}`;
     onSubmit({
       kurum_adi: data.kurum_adi,
-      dosya_no: data.dosya_no || '',
+      dosya_no,
       tahsil_tutar,
       vekalet_orani,
       net_hakedis,
@@ -62,6 +63,21 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
           </div>
 
           {/* Hakediş Tarihi */}
+                    {/* Dosya No */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                        Dosya No <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        {...register('dosya_no', { required: 'Dosya numarası zorunludur', minLength: { value: 2, message: 'En az 2 karakter olmalı' } })}
+                        placeholder="Örn: 2025-001"
+                        className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.dosya_no ? 'border-red-500' : 'border-gray-300'}`}
+                      />
+                      {errors.dosya_no && (
+                        <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.dosya_no.message}</p>
+                      )}
+                    </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Hakediş Tarihi <span className="text-red-500">*</span>
