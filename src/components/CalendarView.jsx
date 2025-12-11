@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
-export function CalendarView({ files = [], expenses = [], kurumHakedisleri = [], kurumMasraflari = [] }) {
+export function CalendarView({ files = [], expenses = [], kurumDosyalari = [], kurumMasraflari = [] }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // 1. Ayın Günlerini Hesapla
@@ -60,7 +60,7 @@ export function CalendarView({ files = [], expenses = [], kurumHakedisleri = [],
     });
 
     // C) Kurum Hakedişleri (Yeşil)
-    kurumHakedisleri.forEach(hakedis => {
+    kurumDosyalari.forEach(hakedis => {
       if (hakedis.hakedis_tarihi) {
         try {
           const hakTarih = parseISO(hakedis.hakedis_tarihi);

@@ -73,7 +73,7 @@ const ReportTemplates = ({ isOpen, onClose, data, settings }) => {
     doc.text('GELİR ÖZETİ', 14, y);
     y += 10;
 
-    const filteredKurum = filterByDate(data.kurumHakedisleri || [], 'created_at');
+    const filteredKurum = filterByDate(data.kurumDosyalari || [], 'created_at');
     const toplamGelir = filteredKurum.reduce((sum, k) => {
       const amount = k.net_hakedis || k.ucret || 0;
       const isPaid = k.odendi === true || k.odenmeDurumu === 'Ödendi';
@@ -151,7 +151,7 @@ const ReportTemplates = ({ isOpen, onClose, data, settings }) => {
 
     // Genel İstatistikler
     const toplamDosya = data.dosyalar?.length || 0;
-    const toplamGelir = (data.kurumHakedisleri || []).reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
+    const toplamGelir = (data.kurumDosyalari || []).reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
     const toplamGider = (data.giderler || []).reduce((sum, g) => sum + (g.tutar || 0), 0);
     const netKar = toplamGelir - toplamGider;
 
@@ -186,7 +186,7 @@ const ReportTemplates = ({ isOpen, onClose, data, settings }) => {
 
     const monthlyData = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
-      const monthGelir = (data.kurumHakedisleri || [])
+      const monthGelir = (data.kurumDosyalari || [])
         .filter(k => new Date(k.created_at).getMonth() + 1 === month)
         .reduce((sum, k) => sum + (k.net_hakedis || 0), 0);
       const monthGider = (data.giderler || [])

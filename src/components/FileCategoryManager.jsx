@@ -108,10 +108,10 @@ const FileCategoryManager = ({ isOpen, onClose, onCategoriesChange }) => {
   const handleDelete = (id) => {
     // Check if category is in use
     const dosyalar = JSON.parse(localStorage.getItem('dosyalar') || '[]');
-    const kurumHakedisleri = JSON.parse(localStorage.getItem('kurumHakedisleri') || '[]');
+    const kurumDosyalari = JSON.parse(localStorage.getItem('kurumDosyalari') || '[]');
     
     const category = categories.find(c => c.id === id);
-    const isInUse = [...dosyalar, ...kurumHakedisleri].some(
+    const isInUse = [...dosyalar, ...kurumDosyalari].some(
       file => file.kategori === category?.name
     );
 
@@ -126,12 +126,12 @@ const FileCategoryManager = ({ isOpen, onClose, onCategoriesChange }) => {
       const updatedDosyalar = dosyalar.map(file =>
         file.kategori === category.name ? { ...file, kategori: '' } : file
       );
-      const updatedKurumHakedisleri = kurumHakedisleri.map(file =>
+      const updatedKurumDosyalari = kurumDosyalari.map(file =>
         file.kategori === category.name ? { ...file, kategori: '' } : file
       );
 
       localStorage.setItem('dosyalar', JSON.stringify(updatedDosyalar));
-      localStorage.setItem('kurumHakedisleri', JSON.stringify(updatedKurumHakedisleri));
+      localStorage.setItem('kurumDosyalari', JSON.stringify(updatedKurumDosyalari));
     }
 
     const updatedCategories = categories.filter(cat => cat.id !== id);
@@ -144,7 +144,7 @@ const FileCategoryManager = ({ isOpen, onClose, onCategoriesChange }) => {
     const dosyalar = JSON.parse(localStorage.getItem('dosyalar') || '[]');
     const kurumDosyalari = JSON.parse(localStorage.getItem('kurumDosyalari') || '[]');
     
-    return [...dosyalar, ...kurumHakedisleri].filter(
+    return [...dosyalar, ...kurumDosyalari].filter(
       file => file.kategori === categoryName
     ).length;
   };
