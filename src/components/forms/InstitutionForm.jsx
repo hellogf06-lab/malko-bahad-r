@@ -46,42 +46,6 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Kurum Adı <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              {...register('kurum_adi', { 
-                required: 'Kurum adı zorunludur',
-                minLength: { value: 2, message: 'En az 2 karakter olmalıdır' }
-              })}
-              placeholder="Örn: SGK, İcra Müdürlüğü"
-              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.kurum_adi ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.kurum_adi && (
-              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.kurum_adi.message}</p>
-            )}
-          </div>
-
-                    {/* Dosya No */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Dosya No <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        {...register('dosya_no', { required: 'Dosya numarası zorunludur', minLength: { value: 2, message: 'En az 2 karakter olmalı' } })}
-                        placeholder="Örn: 2025-001"
-                        className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.dosya_no ? 'border-red-500' : 'border-gray-300'}`}
-                      />
-                      {errors.dosya_no && (
-                        <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.dosya_no.message}</p>
-                      )}
-                    </div>
-            {/* Hakediş Tarihi */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Hakediş Tarihi <span className="text-red-500">*</span>
-              </label>
               <input
                 type="date"
                 {...register('hakedis_tarihi', { required: 'Hakediş tarihi zorunludur' })}
