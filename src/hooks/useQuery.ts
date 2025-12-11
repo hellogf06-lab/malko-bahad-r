@@ -220,7 +220,7 @@ export const useUpdateKurumMasrafi = () => {
 export const useDeleteKurumMasrafi = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: api.deleteKurumMasraf,
+    mutationFn: api.deleteKurumMasrafi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_MASRAFLARI });
@@ -287,8 +287,10 @@ export const useAddData = (type: string) => {
     takipMasraflari: useAddTakipMasrafi,
     kurumHakedisleri: useAddKurumHakedisi,
     kurumMasraflari: useAddKurumMasrafi,
+    kurum_masraflari: useAddKurumMasrafi,
     giderler: useAddGider,
   };
+  if (!hooks[type as keyof typeof hooks]) throw new Error(`useAddData: '${type}' için mutationFn bulunamadı!`);
   return hooks[type as keyof typeof hooks]();
 };
 
@@ -298,8 +300,10 @@ export const useUpdateData = (type: string) => {
     takipMasraflari: useUpdateTakipMasrafi,
     kurumHakedisleri: useUpdateKurumHakedisi,
     kurumMasraflari: useUpdateKurumMasrafi,
+    kurum_masraflari: useUpdateKurumMasrafi,
     giderler: useUpdateGider,
   };
+  if (!hooks[type as keyof typeof hooks]) throw new Error(`useUpdateData: '${type}' için mutationFn bulunamadı!`);
   return hooks[type as keyof typeof hooks]();
 };
 
@@ -309,8 +313,10 @@ export const useDeleteData = (type: string) => {
     takipMasraflari: useDeleteTakipMasrafi,
     kurumHakedisleri: useDeleteKurumHakedisi,
     kurumMasraflari: useDeleteKurumMasrafi,
+    kurum_masraflari: useDeleteKurumMasrafi,
     giderler: useDeleteGider,
   };
+  if (!hooks[type as keyof typeof hooks]) throw new Error(`useDeleteData: '${type}' için mutationFn bulunamadı!`);
   return hooks[type as keyof typeof hooks]();
 };
 

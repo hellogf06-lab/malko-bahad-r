@@ -1,4 +1,35 @@
-import { ExpenseSheet } from './components/forms/ExpenseSheet';
+// Kategori renkleri (isteğe göre özelleştirilebilir)
+const CATEGORY_COLORS = {
+  'Kira': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Aidat': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Elektrik': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'Su': 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'İnternet': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Maaş': 'bg-green-100 text-green-700 border-green-200',
+  'Sigorta': 'bg-orange-100 text-orange-700 border-orange-200',
+  'Kırtasiye': 'bg-pink-100 text-pink-700 border-pink-200',
+  'Mutfak': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Vergi': 'bg-red-100 text-red-700 border-red-200',
+  'Ulaşım': 'bg-teal-100 text-teal-700 border-teal-200',
+  'Temsil/Ağırlama': 'bg-lime-100 text-lime-700 border-lime-200',
+  'Diğer': 'bg-gray-100 text-gray-700 border-gray-200'
+};
+// Kategori-ikon eşleşmesi (ExpenseForm ile aynı olmalı)
+const CATEGORY_ICONS = {
+  'Kira': '🏠',
+  'Aidat': '💳',
+  'Elektrik': '⚡',
+  'Su': '💧',
+  'İnternet': '🌐',
+  'Maaş': '👤',
+  'Sigorta': '🛡️',
+  'Kırtasiye': '📎',
+  'Mutfak': '🍽️',
+  'Vergi': '💸',
+  'Ulaşım': '🚗',
+  'Temsil/Ağırlama': '🍽️',
+  'Diğer': '📦'
+};
 import Drawer, { DetailField, DrawerBadge } from './components/ui/drawer';
 import { useAuth } from './contexts/AuthContext';
 import React, { useState, useMemo, useEffect } from 'react';
@@ -6,12 +37,16 @@ import { createPortal } from 'react-dom';
 import { Download, Upload, Plus, Building2, Briefcase, FileText, TrendingUp, DollarSign, Trash2, Home, BarChart2, BarChart3, Wallet, CheckCircle, Clock, RefreshCw, Edit2, Eye, Search, Settings, Bell, ChevronUp, ChevronDown, X, Filter, Calendar } from 'lucide-react';
 // Modern ikon stilleri için
 const iconButtonStyle = "rounded-lg shadow-sm border border-gray-200 bg-white hover:bg-gray-50 transition-all flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700";
+
+import { sortData, formatPara } from './utils/helpers';
 import * as XLSX from 'xlsx';
 
 
 // Components
 import Header from './components/Header';
+import Layout from './components/Layout';
 import Modal from './components/Modal';
+import RadixModal from './components/ui/RadixModal';
 import Alert from './components/Alert';
 import SummaryCard from './components/SummaryCard';
 import SimpleBarChart from './components/SimpleBarChart';
@@ -44,42 +79,93 @@ import ExpenseForm from './components/forms/ExpenseForm';
 
 // Hooks
 import { useAllDataQueries } from './hooks/useQuery';
-import { useAddData, useUpdateData, useDeleteData, useTogglePaid } from './hooks/useQuery';
+import { useDeleteKurumMasrafi, useAddData, useUpdateData, useDeleteData, useTogglePaid } from './hooks/useQuery';
+import { supabase } from './lib/supabase';
 import { useCalculations } from './hooks/useCalculations';
 import { usePDFExport } from './hooks/usePDFExport';
 
-// Utils
-import { formatPara, searchInObject, sortData, isDateInRange } from './utils/helpers.ts';
-import { EXPENSE_CATEGORIES, STORAGE_KEY, COLORS } from './utils/constants.ts';
-import Layout from './components/Layout.jsx';
+// ...existing code...
 
-// --- ANA UYGULAMA ---
 const App = () => {
-                                                      // Excel/CSV veri yükleyici modalı için state
-                                                      const [showImporter, setShowImporter] = useState(false);
-                                                      // Hatırlatma sistemi modalı için state
-                                                      const [showReminders, setShowReminders] = useState(false);
-                                                      // Klavye kısayolları yardım modalı için state
-                                                      const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
-                                    // İşlem geçmişi (audit log) modalı için state
-                                    const [showAuditLog, setShowAuditLog] = useState(false);
-                  // Analitik modalı için state
-                  const [showAnalytics, setShowAnalytics] = useState(false);
-                  // Yedekleme yöneticisi modalı için state
-                  const [showBackupManager, setShowBackupManager] = useState(false);
-                // E-posta ayarları modalı için state
-                const [showEmailSettings, setShowEmailSettings] = useState(false);
-              // Takvim/ajanda modalı için state
-              const [showCalendar, setShowCalendar] = useState(false);
-            // Gider ekle/düzenle submit handler
-            const handleExpenseSubmit = (data) => {
+  // Realtime sync: tüm ana tablolar için
+  React.useEffect(() => {
+    const tables = [
+      'dosyalar',
+      'kurum_hakedisleri',
+      'kurum_masraflari',
+      'takip_masraflari',
+      'giderler'
+    ];
+    const channels = tables.map((table) => {
+      return supabase
+        .channel(`${table}-changes`)
+        .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+          console.log(`${table} realtime değişiklik:`, payload);
+          window.location.reload();
+        })
+        .subscribe();
+    });
+    return () => {
+      channels.forEach((ch) => supabase.removeChannel(ch));
+    };
+  }, []);
+
+  React.useEffect(() => {
+    import('./lib/supabase').then(({ supabase }) => {
+      supabase.auth.getUser().then(({ data }) => {
+        console.log('Aktif kullanıcı:', data.user);
+        if (!data.user) {
+          alert('Oturum yok! Lütfen tekrar giriş yapın.');
+        }
+      });
+    });
+  }, []);
+
+  // Excel/CSV veri yükleyici modalı için state
+  const [showImporter, setShowImporter] = useState(false);
+  // Hatırlatma sistemi modalı için state
+  const [showReminders, setShowReminders] = useState(false);
+  // Klavye kısayolları yardım modalı için state
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  // İşlem geçmişi (audit log) modalı için state
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  // Analitik modalı için state
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  // Yedekleme yöneticisi modalı için state
+  const [showBackupManager, setShowBackupManager] = useState(false);
+  // E-posta ayarları modalı için state
+  const [showEmailSettings, setShowEmailSettings] = useState(false);
+  // Takvim/ajanda modalı için state
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  // Gider ekle/düzenle submit handler
+  const handleExpenseSubmit = (data) => {
+    // Formdan gelen veriyi Gider arayüzüne uygun şekilde aktar
+              const giderData = {
+                aciklama: data.aciklama,
+                tutar: Number(data.tutar),
+                kategori: data.kategori,
+                tarih: data.tarih,
+                notes: data.notes || null
+              };
+              const onError = (error) => {
+                console.error('Supabase gider ekleme hatası:', error?.message, error);
+                if (error?.message?.includes('Kullanıcı oturumu bulunamadı')) {
+                  alert('Oturumunuz sona ermiş olabilir. Lütfen tekrar giriş yapın.');
+                } else {
+                  alert('Hata: ' + (error?.message || 'Bilinmeyen hata'));
+                }
+                // Formu kapatma! Kullanıcı tekrar deneyebilsin.
+              };
+              const onSuccess = () => {
+                setShowNewExpenseModal(false);
+                setEditingItem(null);
+              };
               if (editingItem) {
-                updateExpenseMutation.mutate({ ...editingItem, ...data });
+                updateExpenseMutation.mutate({ ...editingItem, ...giderData }, { onError, onSuccess });
               } else {
-                addExpenseMutation.mutate(data);
+                addExpenseMutation.mutate(giderData, { onError, onSuccess });
               }
-              setShowNewExpenseModal(false);
-              setEditingItem(null);
             };
           // Takip Masrafı ekle/düzenle submit handler
           const handleLegalExpenseSubmit = (data) => {
@@ -201,7 +287,7 @@ const App = () => {
   
   const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
   const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');
-  const deleteInstitutionExpenseMutation = useDeleteData('kurumMasraflari');
+  const deleteInstitutionExpenseMutation = useDeleteKurumMasrafi();
   const toggleInstitutionExpenseMutation = useTogglePaid('kurumMasraflari');
   
   const addExpenseMutation = useAddData('giderler');
@@ -408,7 +494,9 @@ const App = () => {
     </div>
   );
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <>
+      <Header />
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {debugUserIdPanel}
       {/* Supabase bağlantı paneli kaldırıldı */}
       {/* Sadece adminler için kullanıcı yönetimi erişimi */}
@@ -656,7 +744,22 @@ const App = () => {
                                                 <TableCell className="text-center">
                                                     <button onClick={() => {
                                                       if (window.confirm('Bu kurum masrafı silinsin mi?')) {
-                                                        deleteInstitutionExpenseMutation.mutate(m.id);
+                                                        console.log('Silinecek kurum masrafı id:', m.id);
+                                                        console.log('deleteInstitutionExpenseMutation.mutate typeof:', typeof deleteInstitutionExpenseMutation.mutate);
+                                                        if (typeof deleteInstitutionExpenseMutation.mutate !== 'function') {
+                                                          alert('Silme fonksiyonu bulunamadı!');
+                                                          return;
+                                                        }
+                                                        deleteInstitutionExpenseMutation.mutate(m.id, {
+                                                          onError: (error) => {
+                                                            console.error('Silme işlemi HATA:', error);
+                                                            alert('Silme işlemi başarısız: ' + (error?.message || 'Bilinmeyen hata'));
+                                                          },
+                                                          onSuccess: (data) => {
+                                                            console.log('Silme işlemi BAŞARILI, dönen veri:', data);
+                                                            alert('Kurum masrafı başarıyla silindi.');
+                                                          }
+                                                        });
                                                       }
                                                     }} className="text-red-300 hover:text-red-600 transition-colors">
                                                         <Trash2 size={16}/>
@@ -812,76 +915,90 @@ const App = () => {
 
           {/* OFİS GİDERLERİ */}
           {activeTab === 'giderler' && (
-             <Card>
-                <CardHeader className="bg-gray-50">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 bg-rose-100 rounded-lg text-rose-600">
-                                <Wallet size={24}/>
-                            </div>
-                            <div>
-                                <CardTitle className="text-xl">Ofis Gider Listesi</CardTitle>
-                                <p className="text-sm text-gray-500">Maaş, kira, fatura ve diğer operasyonel giderler</p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-sm text-gray-500">Toplam Gider</p>
-                            <p className="text-2xl font-bold text-rose-600">{formatPara(hesaplamalar.ofisGiderToplam)}</p>
-                        </div>
+            <Card className="shadow-lg border-2 border-rose-100">
+              <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100 border-b flex flex-col gap-2">
+                <div className="flex flex-wrap gap-4 justify-between items-center mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-rose-100 rounded-lg text-rose-600">
+                      <Wallet size={24}/>
                     </div>
-                    <Button onClick={() => setShowNewExpenseModal(true)} className="bg-rose-600 hover:bg-rose-700 flex items-center gap-2" size="sm">
-                        <Plus size={18}/> Yeni Ofis Gideri Ekle
-                    </Button>
-                </CardHeader>
-                <CardContent className="p-2">
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-gray-50">
-                                    <TableHead>Tarih</TableHead>
-                                    <TableHead>Kategori</TableHead>
-                                    <TableHead>Açıklama</TableHead>
-                                    <TableHead className="text-right">Tutar</TableHead>
-                                    <TableHead>Not</TableHead>
-                                    <TableHead className="text-center">Detay</TableHead>
-                                    <TableHead className="text-center">Düzenle</TableHead>
-                                    <TableHead className="text-center">Sil</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {giderler.map(g => (
-                                    <TableRow key={g.id}>
-                                        <TableCell className="text-gray-500">{g.tarih}</TableCell>
-                                        <TableCell>
-                                            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-300">
-                                                {g.kategori}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{g.aciklama}</TableCell>
-                                        <TableCell className="text-right font-bold text-rose-600">{formatPara(g.tutar)}</TableCell>
-                                        <TableCell className="text-sm text-gray-500 max-w-[150px] truncate">{g.notes ? (g.notes.length > 20 ? g.notes.substring(0, 20) + '...' : g.notes) : '-'}</TableCell>
-                                        <TableCell className="text-center">
-                                            <button onClick={() => openDetailModal(g, 'expense')} className="text-blue-400 hover:text-blue-600 transition-colors">
-                                                <Eye size={18}/>
-                                            </button>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <button onClick={() => openEditModal(g, 'expense')} className="text-purple-400 hover:text-purple-600 transition-colors">
-                                                <Edit2 size={18}/>
-                                            </button>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <button onClick={() => deleteExpenseMutation.mutate(g.id)} className="text-gray-400 hover:text-red-500 transition-colors">
-                                                <Trash2 size={18}/>
-                                            </button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <div>
+                      <CardTitle className="text-xl">Ofis Giderleri</CardTitle>
+                      <p className="text-sm text-gray-500">Maaş, kira, fatura ve diğer operasyonel giderler</p>
                     </div>
-                </CardContent>
-             </Card>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-xs text-gray-500">Toplam Gider</span>
+                    <span className="text-2xl font-bold text-rose-600">{formatPara(hesaplamalar.ofisGiderToplam)}</span>
+                  </div>
+                </div>
+                {/* Kategori bazlı özet kutuları */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {Object.keys(CATEGORY_ICONS).map(cat => {
+                    const sum = giderler.filter(g => g.kategori === cat).reduce((acc, g) => acc + Number(g.tutar || 0), 0);
+                    if (sum === 0) return null;
+                    return (
+                      <div key={cat} className={`flex items-center gap-2 px-3 py-1 rounded-lg border text-xs font-semibold shadow-sm ${CATEGORY_COLORS[cat] || 'bg-gray-100 text-gray-700 border-gray-200'}`} style={{minWidth:120}}>
+                        <span style={{fontSize:18}}>{CATEGORY_ICONS[cat] || '📦'}</span>
+                        <span>{cat}</span>
+                        <span className="ml-auto font-bold">{formatPara(sum)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Button onClick={() => setShowNewExpenseModal(true)} className="bg-rose-600 hover:bg-rose-700 flex items-center gap-2 mt-4 self-end" size="sm">
+                  <Plus size={18}/> Yeni Ofis Gideri Ekle
+                </Button>
+              </CardHeader>
+              <CardContent className="p-2">
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead>Tarih</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead>Açıklama</TableHead>
+                        <TableHead className="text-right">Tutar</TableHead>
+                        <TableHead>Not</TableHead>
+                        <TableHead className="text-center">Detay</TableHead>
+                        <TableHead className="text-center">Düzenle</TableHead>
+                        <TableHead className="text-center">Sil</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {giderler.map(g => (
+                        <TableRow key={g.id} className="hover:bg-rose-50 transition-all">
+                          <TableCell className="text-gray-500 text-xs">{g.tarih}</TableCell>
+                          <TableCell>
+                            <span className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-semibold ${CATEGORY_COLORS[g.kategori] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                              <span style={{fontSize:16}}>{CATEGORY_ICONS[g.kategori] || '📦'}</span> {g.kategori}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-medium text-sm">{g.aciklama}</TableCell>
+                          <TableCell className="text-right font-bold text-rose-600">{formatPara(g.tutar)}</TableCell>
+                          <TableCell className="text-xs text-gray-500 max-w-[150px] truncate">{g.notes ? (g.notes.length > 20 ? g.notes.substring(0, 20) + '...' : g.notes) : '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <button onClick={() => openDetailModal(g, 'expense')} className="text-blue-400 hover:text-blue-600 transition-colors">
+                              <Eye size={18}/>
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <button onClick={() => openEditModal(g, 'expense')} className="text-purple-400 hover:text-purple-600 transition-colors">
+                              <Edit2 size={18}/>
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <button onClick={() => deleteExpenseMutation.mutate(g.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={18}/>
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* DASHBOARD */}
@@ -1026,15 +1143,53 @@ const App = () => {
         />
       </Drawer>
 
-      <ExpenseSheet 
+
+      {/* Ofis Gideri Ekleme Modalı (Radix) */}
+      <RadixModal 
         open={showNewExpenseModal} 
-        onOpenChange={(open) => { 
-          setShowNewExpenseModal(open); 
-          if (!open) setEditingItem(null); 
-        }} 
-        onSubmit={handleExpenseSubmit}
-        initialData={editingItem}
-      />
+        onOpenChange={setShowNewExpenseModal} 
+        title="Yeni Ofis Gideri Ekle"
+        description="Ofis giderinizi kategori, tutar ve açıklama ile kaydedin."
+      >
+        <ExpenseForm 
+          onSubmit={(formData) => {
+            console.log('ExpenseForm submit edilen veri:', formData);
+            // formData: { aciklama, kategori, tutar, tarih, notes }
+            if (!formData.aciklama || !formData.kategori || !formData.tutar || !formData.tarih) {
+              alert('Lütfen tüm zorunlu alanları doldurun.');
+              return;
+            }
+            // Tutarı sayıya çevir ve tarih string mi kontrol et
+            const parsedTutar = parseFloat(formData.tutar);
+            if (isNaN(parsedTutar) || parsedTutar <= 0) {
+              alert('Tutar geçerli bir sayı olmalı ve sıfırdan büyük olmalı.');
+              return;
+            }
+            if (typeof formData.tarih !== 'string' || !formData.tarih.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              alert('Tarih formatı YYYY-MM-DD olmalı.');
+              return;
+            }
+            console.log('App.jsx handleExpenseSubmit gönderilen veri:', {
+              aciklama: formData.aciklama,
+              kategori: formData.kategori,
+              tutar: parsedTutar,
+              tarih: formData.tarih,
+              notes: formData.notes || ''
+            });
+            handleExpenseSubmit({
+              aciklama: formData.aciklama,
+              kategori: formData.kategori,
+              tutar: parsedTutar,
+              tarih: formData.tarih,
+              notes: formData.notes || ''
+            });
+          }}
+          initialData={editingItem}
+          onCancel={() => setShowNewExpenseModal(false)}
+        />
+      </RadixModal>
+
+      {/* Diğer RadixModal kullanımlarında da description prop'u eklenmeli. Eğer başka yerde varsa, orada da description={""} eklenmeli. */}
 
       {/* AYARLAR MODAL */}
       <Modal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} title="⚙️ Ayarlar">
@@ -1449,7 +1604,8 @@ const App = () => {
       {/* Toast Notifications */}
       <Toaster position="bottom-right" richColors closeButton />
     </Layout>
+  </>
   );
-};
+}
 
 export default App;

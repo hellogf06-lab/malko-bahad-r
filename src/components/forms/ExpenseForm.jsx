@@ -1,9 +1,27 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '../ui/button';
+import { EXPENSE_CATEGORIES } from '../../utils/constants';
 
 const ExpenseForm = ({ onSubmit, initialData = null, onCancel }) => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  // Kategori-ikon eşleşmesi
+  const CATEGORY_ICONS = {
+    'Kira': '🏠',
+    'Aidat': '💳',
+    'Elektrik': '⚡',
+    'Su': '💧',
+    'İnternet': '🌐',
+    'Maaş': '👤',
+    'Sigorta': '🛡️',
+    'Kırtasiye': '📎',
+    'Mutfak': '🍽️',
+    'Vergi': '💸',
+    'Ulaşım': '🚗',
+    'Temsil/Ağırlama': '🍽️',
+    'Diğer': '📦'
+  };
+
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm({
     defaultValues: initialData || {
       aciklama: '',
       kategori: 'Kira',
@@ -12,6 +30,7 @@ const ExpenseForm = ({ onSubmit, initialData = null, onCancel }) => {
       notes: ''
     }
   });
+  const selectedCategory = watch('kategori');
 
   const onFormSubmit = (data) => {
     onSubmit({
@@ -99,23 +118,26 @@ const ExpenseForm = ({ onSubmit, initialData = null, onCancel }) => {
         <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-4">
           🏷️ Kategori Seçimi
         </h3>
-        
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">
             Gider Kategorisi <span className="text-red-500">*</span>
           </label>
-          <select
-            {...register('kategori', { required: 'Kategori zorunludur' })}
-            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="Kira">🏠 Kira</option>
-            <option value="Maaş">👤 Maaş</option>
-            <option value="Elektrik">⚡ Elektrik</option>
-            <option value="Su">💧 Su</option>
-            <option value="İnternet">🌐 İnternet</option>
-            <option value="Kırtasiye">📎 Kırtasiye</option>
-            <option value="Diğer">📦 Diğer</option>
-          </select>
+          <input type="hidden" {...register('kategori', { required: 'Kategori seçimi zorunludur' })} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {EXPENSE_CATEGORIES.map((cat) => (
+              <button
+                type="button"
+                key={cat}
+                onClick={() => setValue('kategori', cat, { shouldValidate: true })}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm font-medium
+                  ${selectedCategory === cat ? 'bg-blue-100 border-blue-500 text-blue-700 shadow' : 'bg-white border-gray-300 hover:bg-gray-50'}`}
+                aria-pressed={selectedCategory === cat}
+              >
+                <span style={{fontSize:20}}>{CATEGORY_ICONS[cat] || '📦'}</span>
+                <span>{cat}</span>
+              </button>
+            ))}
+          </div>
           {errors.kategori && (
             <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.kategori.message}</p>
           )}

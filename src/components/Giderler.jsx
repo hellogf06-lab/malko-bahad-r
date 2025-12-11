@@ -7,6 +7,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { exportGiderlerToExcel } from '../utils/excelExport';
+import { EXPENSE_CATEGORIES } from '../utils/constants';
+// Kategori-ikon eşleşmesi (ExpenseForm ile aynı olmalı)
+const CATEGORY_ICONS = {
+  'Kira': '🏠',
+  'Aidat': '💳',
+  'Elektrik': '⚡',
+  'Su': '💧',
+  'İnternet': '🌐',
+  'Maaş': '👤',
+  'Sigorta': '🛡️',
+  'Kırtasiye': '📎',
+  'Mutfak': '🍽️',
+  'Vergi': '💸',
+  'Ulaşım': '🚗',
+  'Temsil/Ağırlama': '🍽️',
+  'Diğer': '📦'
+};
 import { toast } from '../utils/toast';
 import { useDebounce } from '../hooks/useDebounce';
 import { Badge } from './ui/avatar';
@@ -111,7 +128,10 @@ const Giderler = ({ giderler, formatPara, onEdit, onDelete }) => {
                     <TableCell className="text-sm">{g.tarih}</TableCell>
                     <TableCell className="text-sm">{g.aciklama}</TableCell>
                     <TableCell className="text-sm">
-                      <Badge variant="info" size="sm">{g.kategori}</Badge>
+                      <Badge variant="info" size="sm">
+                        <span style={{fontSize:16,marginRight:4}}>{CATEGORY_ICONS[g.kategori] || '📦'}</span>
+                        {g.kategori}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-right font-medium">{formatPara(g.tutar)}</TableCell>
                     <TableCell className="text-sm">{g.faturaNo}</TableCell>

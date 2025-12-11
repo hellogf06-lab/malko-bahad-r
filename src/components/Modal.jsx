@@ -14,13 +14,15 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Overlay click ile modalı kapatma devre dışı
-  const handleOverlayClick = () => {
-    // Artık overlay'e tıklayınca modal kapanmaz
+  // Overlay tıklaması ile modalı kapat
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
   };
 
   return createPortal(
-    <div 
+    <div
+      role="dialog"
+      aria-modal="true"
       style={{
         position: 'fixed',
         top: 0,
@@ -36,7 +38,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
       }}
       onClick={handleOverlayClick}
     >
-      <div 
+      <div
         data-modal-box
         style={{
           backgroundColor: 'white',
@@ -49,9 +51,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           position: 'sticky',
           top: 0,
@@ -61,9 +63,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
           zIndex: 10
         }}>
           <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937' }}>{title}</h2>
-          <Button 
-            onClick={onClose} 
-            variant="ghost" 
+          <Button
+            onClick={onClose}
+            variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 rounded-full"
           >
@@ -72,7 +74,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         </div>
         <div style={{ padding: '24px' }}>{children}</div>
       </div>
-    </div>, 
+    </div>,
     document.body
   );
 };

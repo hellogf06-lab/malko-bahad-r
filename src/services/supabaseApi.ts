@@ -236,11 +236,12 @@ export const updateKurumMasrafi = async (id: number, updates: Partial<KurumMasra
 };
 
 export const deleteKurumMasrafi = async (id: number): Promise<void> => {
+  const userId = await getUserId();
   const { error } = await supabase
     .from('kurum_masraflari')
     .delete()
-    .eq('id', id);
-  
+    .eq('id', id)
+    .eq('user_id', userId);
   if (error) throw error;
 };
 
@@ -265,9 +266,13 @@ export const fetchGiderler = async (): Promise<Gider[]> => {
 
 export const addGider = async (gider: Omit<Gider, 'id' | 'created_at' | 'updated_at'>): Promise<Gider> => {
   const userId = await getUserId();
+  // user_id varsa çıkar
+  const { user_id, ...giderWithoutUserId } = gider;
+  const insertObj = { user_id: userId, ...giderWithoutUserId };
+  console.log('Supabase insert objesi:', insertObj);
   const { data, error } = await supabase
     .from('giderler')
-    .insert([{ ...gider, user_id: userId }])
+    .insert([insertObj])
     .select()
     .single();
   if (error) throw error;
