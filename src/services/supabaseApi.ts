@@ -22,11 +22,11 @@ export const fetchAllData = async (): Promise<AllDataResponse> => {
   const userId = await getUserId();
 
   const [dosyalarRes, takipRes, kurumDosyalariRes, kurumMasraflariRes, giderlerRes] = await Promise.all([
-    supabase.from('dosyalar').select('*').eq('user_id', userId),
-    supabase.from('takip_masraflari').select('*').eq('user_id', userId),
-    supabase.from('kurum_dosyalari').select('*').eq('user_id', userId),
-    supabase.from('kurum_masraflari').select('*').eq('user_id', userId),
-    supabase.from('giderler').select('*').eq('user_id', userId),
+    supabase.from('dosyalar').select('*').or(`user_id.eq.${userId},is_public.eq.true`),
+    supabase.from('takip_masraflari').select('*').or(`user_id.eq.${userId},is_public.eq.true`),
+    supabase.from('kurum_dosyalari').select('*').or(`user_id.eq.${userId},is_public.eq.true`),
+    supabase.from('kurum_masraflari').select('*').or(`user_id.eq.${userId},is_public.eq.true`),
+    supabase.from('giderler').select('*').or(`user_id.eq.${userId},is_public.eq.true`),
   ]);
 
   if (dosyalarRes.error) throw dosyalarRes.error;
@@ -52,7 +52,7 @@ export const fetchDosyalar = async (): Promise<Dosya[]> => {
   const { data, error } = await supabase
     .from('dosyalar')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},is_public.eq.true`)
     .order('created_at', { ascending: false });
   
   if (error) throw error;
@@ -100,7 +100,7 @@ export const fetchTakipMasraflari = async (): Promise<TakipMasrafi[]> => {
   const { data, error } = await supabase
     .from('takip_masraflari')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},is_public.eq.true`)
     .order('tarih', { ascending: false });
   
   if (error) throw error;
@@ -152,7 +152,7 @@ export const fetchKurumHakedisleri = async (): Promise<KurumDosyasi[]> => {
   const { data, error } = await supabase
     .from('kurum_dosyalari')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},is_public.eq.true`)
     .order('created_at', { ascending: false });
   
   if (error) throw error;
@@ -204,7 +204,7 @@ export const fetchKurumMasraflari = async (): Promise<KurumMasrafi[]> => {
   const { data, error } = await supabase
     .from('kurum_masraflari')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},is_public.eq.true`)
     .order('tarih', { ascending: false });
   
   if (error) throw error;
@@ -257,7 +257,7 @@ export const fetchGiderler = async (): Promise<Gider[]> => {
   const { data, error } = await supabase
     .from('giderler')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},is_public.eq.true`)
     .order('tarih', { ascending: false });
   
   if (error) throw error;
