@@ -1,3 +1,13 @@
+// Yardımcı: Nesne içinde arama yapan fonksiyon
+function searchInObject(obj, searchTerm) {
+  if (!obj || typeof obj !== 'object') return false;
+  return Object.values(obj).some(
+    value =>
+      (typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (typeof value === 'number' && value.toString().includes(searchTerm)) ||
+      (typeof value === 'object' && searchInObject(value, searchTerm))
+  );
+}
 // Kategori renkleri (isteğe göre özelleştirilebilir)
 const CATEGORY_COLORS = {
   'Kira': 'bg-blue-100 text-blue-700 border-blue-200',
@@ -31,6 +41,7 @@ const CATEGORY_ICONS = {
   'Diğer': '📦'
 };
 import Drawer, { DetailField, DrawerBadge } from './components/ui/drawer';
+// import DebugPanel from './components/DebugPanel';
 import { useAuth } from './contexts/AuthContext';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -84,9 +95,33 @@ import { supabase } from './lib/supabase';
 import { useCalculations } from './hooks/useCalculations';
 import { usePDFExport } from './hooks/usePDFExport';
 
-// ...existing code...
+// Geçici test alanını en üstte render et
+
 
 const App = () => {
+  // React Query ile veri çekme
+  const {
+    dosyalar,
+    kurumDosyalari,
+    takipMasraflari,
+    kurumMasraflari,
+    giderler,
+    isLoading,
+    isError,
+    error
+  } = useAllDataQueries();
+
+  // Edit mode için state
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Debug/Test Panel kaldırıldı
+
+  // Kurum Hakedişi için mutations
+  const addInstitutionMutation = useAddData('kurumHakedisleri');
+  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
+  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
+  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
+
   // Realtime sync: tüm ana tablolar için
   React.useEffect(() => {
     const tables = [
@@ -199,13 +234,28 @@ const App = () => {
       };
     // Kurum Hakedişi ekle/düzenle submit handler
     const handleInstitutionSubmit = (data) => {
+      const myUserId = user?.id; // Oturum açan kullanıcının id'si
       if (editingItem) {
-        updateInstitutionMutation.mutate({ ...editingItem, ...data });
+        updateInstitutionMutation.mutate(
+          { ...editingItem, ...data, user_id: myUserId },
+          {
+            onSuccess: () => {
+              setShowNewInstitutionModal(false);
+              setEditingItem(null);
+            }
+          }
+        );
       } else {
-        addInstitutionMutation.mutate(data);
+        addInstitutionMutation.mutate(
+          { ...data, user_id: myUserId },
+          {
+            onSuccess: () => {
+              setShowNewInstitutionModal(false);
+              setEditingItem(null);
+            }
+          }
+        );
       }
-      setShowNewInstitutionModal(false);
-      setEditingItem(null);
     };
   const { profile, user } = useAuth();
   const [showUserManagement, setShowUserManagement] = useState(false);
@@ -251,66 +301,30 @@ const App = () => {
     };
   });
   
-  useEffect(() => {
-    localStorage.setItem('hukuk_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  // React Query ile veri çekme
-  const { 
-    dosyalar, 
-    kurumDosyalari, 
-    takipMasraflari, 
-    kurumMasraflari, 
-    giderler,
-    isLoading,
-    isError,
-    error
-  } = useAllDataQueries();
-
-  // Edit mode için state (form componentleri kendi state'lerini yönetecek)
-  const [editingItem, setEditingItem] = useState(null);
-
-  // React Query Mutations
-  const addFileMutation = useAddData('dosyalar');
-  const updateFileMutation = useUpdateData('dosyalar');
-  const deleteFileMutation = useDeleteData('dosyalar');
-  
-  const addLegalExpenseMutation = useAddData('takipMasraflari');
-  const updateLegalExpenseMutation = useUpdateData('takipMasraflari');
-  const deleteLegalExpenseMutation = useDeleteData('takipMasraflari');
-  const toggleLegalExpenseMutation = useTogglePaid('takipMasraflari');
-  
-  const addInstitutionMutation = useAddData('kurumHakedisleri');
-  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
-  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
-  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
-  
-  const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
-  const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');
-  const deleteInstitutionExpenseMutation = useDeleteKurumMasrafi();
-  const toggleInstitutionExpenseMutation = useTogglePaid('kurumMasraflari');
-  
-  const addExpenseMutation = useAddData('giderler');
-  const updateExpenseMutation = useUpdateData('giderler');
-  const deleteExpenseMutation = useDeleteData('giderler');
-
-  // --- HESAPLAMALAR ---
-  const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
-  const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
-
-  // Bildirim kontrolü - akıllı bildirimler
-  useEffect(() => {
-    const checkNotifications = () => {
-      const notifs = [];
-      const today = new Date();
-      const notifDays = settings.notificationDays || 7;
-      
-      // 1. KÂR/ZARAR DURUMU - En önemli bildirim
-      const toplamGelir = hesaplamalar.toplamTahsilat + hesaplamalar.toplamKurumHakedis;
-      const toplamGider = hesaplamalar.toplamGiderler + hesaplamalar.toplamTakipMasraflari + hesaplamalar.toplamKurumMasraflari;
-      const netKar = toplamGelir - toplamGider;
-      
-      if (netKar > 0) {
+  // ...mevcut uygulama kodunuz...
+    // ...diğer ana bileşenler...
+    // Hook ve hesaplamaları fonksiyonun içine taşı
+    const addInstitutionExpenseMutation = useAddData('kurumMasraflari');
+    const updateInstitutionExpenseMutation = useUpdateData('kurumMasraflari');
+    const deleteInstitutionExpenseMutation = useDeleteKurumMasrafi();
+    const toggleInstitutionExpenseMutation = useTogglePaid('kurumMasraflari');
+    const addExpenseMutation = useAddData('giderler');
+    const updateExpenseMutation = useUpdateData('giderler');
+    const deleteExpenseMutation = useDeleteData('giderler');
+    // --- HESAPLAMALAR ---
+    const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
+    const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
+    // Bildirim kontrolü - akıllı bildirimler
+    useEffect(() => {
+      const checkNotifications = () => {
+        const notifs = [];
+        const today = new Date();
+        const notifDays = settings.notificationDays || 7;
+        // 1. KÂR/ZARAR DURUMU - En önemli bildirim
+        const toplamGelir = hesaplamalar.toplamTahsilat + hesaplamalar.toplamKurumHakedis;
+        const toplamGider = hesaplamalar.toplamGiderler + hesaplamalar.toplamTakipMasraflari + hesaplamalar.toplamKurumMasraflari;
+        const netKar = toplamGelir - toplamGider;
+        if (netKar > 0) {
         notifs.push({ 
           type: 'success', 
           message: `✅ Kâr Durumu: ${formatPara(netKar, settings.currency)} (Gelir: ${formatPara(toplamGelir, settings.currency)}, Gider: ${formatPara(toplamGider, settings.currency)})`,
@@ -498,6 +512,7 @@ const App = () => {
       <Header />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {debugUserIdPanel}
+      {/* DebugPanel kaldırıldı */}
       {/* Supabase bağlantı paneli kaldırıldı */}
       {/* Sadece adminler için kullanıcı yönetimi erişimi */}
       {profile?.role === 'admin' && (
@@ -1604,8 +1619,8 @@ const App = () => {
       {/* Toast Notifications */}
       <Toaster position="bottom-right" richColors closeButton />
     </Layout>
-  </>
-  );
+    </>
+    );
 }
 
 export default App;
