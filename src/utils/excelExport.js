@@ -69,7 +69,7 @@ export const exportKurumToExcel = (kurumHakedisler) => {
     'Not': k.notes || '-'
   }));
   
-  return exportToExcel(formattedData, 'Kurum_Hakedisleri', 'Kurum Avukatlığı');
+  return exportToExcel(formattedData, 'Kurum_Dosyalari', 'Kurum Avukatlığı');
 };
 
 export const exportAllData = (dosyalar, giderler, kurumHakedisler) => {

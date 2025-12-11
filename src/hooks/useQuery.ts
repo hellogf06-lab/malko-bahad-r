@@ -6,7 +6,7 @@ import type { Dosya, TakipMasrafi, KurumDosyasi, KurumMasrafi, Gider, AllDataRes
 export const QUERY_KEYS = {
   ALL_DATA: ['allData'],
   DOSYALAR: ['dosyalar'],
-  KURUM_HAKEDISLERI: ['kurumDosyalari'],
+  KURUM_DOSYALARI: ['kurumDosyalari'],
   TAKIP_MASRAFLARI: ['takipMasraflari'],
   KURUM_MASRAFLARI: ['kurumMasraflari'],
   GIDERLER: ['giderler'],
@@ -32,7 +32,7 @@ export const useDosyalar = (): UseQueryResult<Dosya[]> => {
 
 export const useKurumHakedisleri = (): UseQueryResult<KurumDosyasi[]> => {
   return useQuery({
-    queryKey: QUERY_KEYS.KURUM_HAKEDISLERI,
+    queryKey: QUERY_KEYS.KURUM_DOSYALARI,
     queryFn: api.fetchKurumHakedisleri,
   });
 };
@@ -153,7 +153,7 @@ export const useAddKurumHakedisi = () => {
     mutationFn: api.addKurumHakedisi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
     },
   });
 };
@@ -164,7 +164,7 @@ export const useUpdateKurumHakedisi = () => {
     mutationFn: ({ id, data }: { id: string; data: Partial<KurumDosyasi> }) => api.updateKurumHakedisi(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
     },
   });
 };
@@ -175,7 +175,7 @@ export const useDeleteKurumHakedisi = () => {
     mutationFn: api.deleteKurumHakedisi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
     },
   });
 };
@@ -186,7 +186,7 @@ export const useToggleKurumHakedisiPaid = () => {
     mutationFn: ({ id, odendi }: { id: string; odendi: boolean }) => api.toggleKurumHakedisiPaid(id, odendi),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ALL_DATA });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_HAKEDISLERI });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.KURUM_DOSYALARI });
     },
   });
 };
