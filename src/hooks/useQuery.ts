@@ -286,6 +286,7 @@ export const useAddData = (type: string) => {
     dosyalar: useAddDosya,
     takipMasraflari: useAddTakipMasrafi,
     kurumHakedisleri: useAddKurumHakedisi,
+    kurumDosyalari: useAddKurumHakedisi,
     kurumMasraflari: useAddKurumMasrafi,
     kurum_masraflari: useAddKurumMasrafi,
     giderler: useAddGider,
@@ -299,6 +300,7 @@ export const useUpdateData = (type: string) => {
     dosyalar: useUpdateDosya,
     takipMasraflari: useUpdateTakipMasrafi,
     kurumHakedisleri: useUpdateKurumHakedisi,
+    kurumDosyalari: useUpdateKurumHakedisi,
     kurumMasraflari: useUpdateKurumMasrafi,
     kurum_masraflari: useUpdateKurumMasrafi,
     giderler: useUpdateGider,
@@ -312,6 +314,7 @@ export const useDeleteData = (type: string) => {
     dosyalar: useDeleteDosya,
     takipMasraflari: useDeleteTakipMasrafi,
     kurumHakedisleri: useDeleteKurumHakedisi,
+    kurumDosyalari: useDeleteKurumHakedisi,
     kurumMasraflari: useDeleteKurumMasrafi,
     kurum_masraflari: useDeleteKurumMasrafi,
     giderler: useDeleteGider,
@@ -324,6 +327,7 @@ export const useTogglePaid = (type: string) => {
   const hooks = {
     takipMasraflari: useToggleTakipMasrafiPaid,
     kurumHakedisleri: useToggleKurumHakedisiPaid,
+    kurumDosyalari: useToggleKurumHakedisiPaid,
     kurumMasraflari: useToggleKurumMasrafiPaid,
   };
   return hooks[type as keyof typeof hooks]();
