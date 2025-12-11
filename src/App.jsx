@@ -369,7 +369,7 @@ const App = () => {
     };
     // useEffect'in sonunda fonksiyon çağrısı veya başka bir işlem olabilir
     // Örneğin: checkNotifications();
-  }, [settings, hesaplamalar, dosyalar, kurumHakedisleri, kurumMasraflari, giderler, takipMasraflari]);
+  }, [settings, hesaplamalar, dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari]);
 
   const openDetailModal = (item, type) => {
     setDetailModal({ isOpen: true, item, type });
@@ -449,7 +449,7 @@ const App = () => {
   };
 
   const excelIndir = () => {
-    exportAllData(dosyalar, kurumHakedisleri, giderler);
+    exportAllData(dosyalar, kurumDosyalari, giderler);
     toast.success('Tüm veriler Excel olarak indirildi.');
   };
 
@@ -472,8 +472,8 @@ const App = () => {
   if (isError) {
     return <div style={{padding:40, color:'red', fontWeight:'bold'}}>Hata: {error?.message || 'Veri çekilemedi'} (isError=true)</div>;
   }
-  if (!dosyalar || !kurumHakedisleri || !giderler) {
-    return <div style={{padding:40, color:'orange', fontWeight:'bold'}}>Veri eksik! dosyalar/kurumHakedisleri/giderler yok.</div>;
+  if (!dosyalar || !kurumDosyalari || !giderler) {
+    return <div style={{padding:40, color:'orange', fontWeight:'bold'}}>Veri eksik! dosyalar/kurumDosyalari/giderler yok.</div>;
   }
   // Profil veya context eksikse uyarı
   if (typeof profile === 'undefined') {
@@ -483,9 +483,9 @@ const App = () => {
   const debugUserIdPanel = (
     <div style={{position:'fixed',bottom:0,right:0,zIndex:9999,background:'#fff',color:'#222',padding:12,border:'2px solid #888',borderRadius:8,fontSize:13,boxShadow:'0 2px 8px #0002'}}>
       <div><b>Aktif Kullanıcı user_id:</b> <span style={{color:'#0070f3'}}>{user?.id || '-'}</span></div>
-      <div><b>Supabase kurumHakedisleri user_id'leri:</b></div>
+      <div><b>Supabase kurumDosyalari user_id'leri:</b></div>
       <ul style={{maxHeight:80,overflow:'auto',margin:0,paddingLeft:16}}>
-        {kurumHakedisleri && kurumHakedisleri.length > 0 ? kurumHakedisleri.map((k,i) => (
+        {kurumDosyalari && kurumDosyalari.length > 0 ? kurumDosyalari.map((k,i) => (
           <li key={k.id || i} style={{color:k.user_id===user?.id?'green':'red'}}>
             {k.user_id || '-'} {k.user_id===user?.id ? '(eşleşiyor)' : '(farklı)'}
           </li>
@@ -1065,7 +1065,7 @@ const App = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CalendarView files={dosyalar} expenses={giderler} kurumHakedisleri={kurumHakedisleri} />
+                  <CalendarView files={dosyalar} expenses={giderler} kurumHakedisleri={kurumDosyalari} />
                 </CardContent>
               </Card>
               
@@ -1079,7 +1079,7 @@ const App = () => {
               <AdvancedAnalytics 
                 data={{
                   dosyalar,
-                  kurumHakedisleri,
+                  kurumDosyalari,
                   giderler,
                   takipMasraflari,
                   kurumMasraflari
@@ -1496,7 +1496,7 @@ const App = () => {
           <CalendarView 
             files={dosyalar}
             expenses={giderler}
-            kurumHakedisleri={kurumHakedisleri}
+            kurumHakedisleri={kurumDosyalari}
             kurumMasraflari={kurumMasraflari}
           />
         </Modal>
@@ -1517,7 +1517,7 @@ const App = () => {
           <AdvancedAnalytics 
             isOpen={showAnalytics}
             onClose={() => setShowAnalytics(false)}
-            data={{ dosyalar, kurumHakedisleri, giderler, takipMasraflari, kurumMasraflari }}
+            data={{ dosyalar, kurumDosyalari, giderler, takipMasraflari, kurumMasraflari }}
             settings={settings}
           />
         </Modal>
@@ -1546,7 +1546,7 @@ const App = () => {
         <Modal isOpen={showReminders} onClose={() => setShowReminders(false)} title="Hatırlatma Sistemi">
           <ReminderSystem 
             dosyalar={dosyalar}
-            kurumHakedisleri={kurumHakedisleri}
+            kurumHakedisleri={kurumDosyalari}
           />
         </Modal>
       )}
