@@ -97,8 +97,6 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
         </div>
       </div>
 
-          </div>
-
           {/* Vekalet Oranı */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
