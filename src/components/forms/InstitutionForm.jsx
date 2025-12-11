@@ -14,9 +14,8 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
   });
 
   const onFormSubmit = (data) => {
-    const tahsil_tutar = parseFloat(data.tahsil_tutar) || 0;
-    const vekalet_orani = parseFloat(data.vekalet_orani) || 0;
-    const net_hakedis = tahsil_tutar * (vekalet_orani / 100);
+    const tahsil_tutar = Number(data.tahsil_tutar) || 0;
+    const vekalet_orani = Number(data.vekalet_orani) || 0;
     // dosya_no zorunlu, boşsa otomatik üret
     let dosya_no = data.dosya_no && data.dosya_no.trim() !== '' ? data.dosya_no : `KURUM-${Date.now()}`;
     onSubmit({
@@ -24,7 +23,6 @@ const InstitutionForm = ({ onSubmit, initialData = null, onCancel }) => {
       dosya_no,
       tahsil_tutar,
       vekalet_orani,
-      net_hakedis,
       odendi: false,
       notes: data.notes || ''
     });
