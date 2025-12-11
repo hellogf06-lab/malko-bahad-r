@@ -563,9 +563,13 @@ const App = () => {
           {activeTab === 'kurum' && (
              <div className="flex flex-col gap-8">
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-                    <SummaryCard title="Reel Kurum Tahsilatı (Kasa)" value={hesaplamalar.kurumReelGelir} type="income" />
-                    <SummaryCard title="Bekleyen Alacak (Kurum)" value={hesaplamalar.kurumBekleyenAlacak} type="pending" />
-                    <SummaryCard title="Kurum Net Bakiye" value={hesaplamalar.kurumReelGelir - (hesaplamalar.kurumMasrafToplam - hesaplamalar.kurumMasrafIade)} type="net" subValue={hesaplamalar.kurumMasrafIade} subLabel="İade Alınan Masraf" />
+                    <div className="flex items-center gap-0">
+                      <SummaryCard title="Reel Kurum Tahsilatı (Kasa)" value={hesaplamalar.kurumReelGelir} type="income" />
+                      <span className="mx-2 text-2xl font-bold text-gray-400 select-none">/</span>
+                      <SummaryCard title="Bekleyen Alacak (Kurum)" value={hesaplamalar.kurumBekleyenAlacak} type="pending" />
+                      <span className="mx-2 text-2xl font-bold text-gray-400 select-none">/</span>
+                      <SummaryCard title="Kurum Net Bakiye" value={hesaplamalar.kurumReelGelir - (hesaplamalar.kurumMasrafToplam - hesaplamalar.kurumMasrafIade)} type="net" subValue={hesaplamalar.kurumMasrafIade} subLabel="İade Alınan Masraf" />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-8">
