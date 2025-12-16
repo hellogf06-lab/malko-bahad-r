@@ -79,7 +79,7 @@ import DataImporter from './components/DataImporter';
 import SettingsPanel from './components/SettingsPanel';
 import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import NotificationCenter from './components/NotificationCenter';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 // Form Components
 import FileForm from './components/forms/FileForm';
@@ -94,6 +94,7 @@ import { useDeleteKurumMasrafi, useAddData, useUpdateData, useDeleteData, useTog
 import { supabase } from './lib/supabase';
 import { useCalculations } from './hooks/useCalculations';
 import { usePDFExport } from './hooks/usePDFExport';
+import { exportAllData } from './utils/excelExport.js';
 
 // Geçici test alanını en üstte render et
 
@@ -111,18 +112,20 @@ const App = () => {
     error
   } = useAllDataQueries();
 
+  // DEBUG: dosyalar dizisi geliyor mu?
+  React.useEffect(() => {
+    if (!dosyalar) {
+      console.log('App.jsx: dosyalar değişkeni YOK veya undefined');
+    } else if (Array.isArray(dosyalar) && dosyalar.length === 0) {
+      console.log('App.jsx: dosyalar BOŞ dizi');
+    } else {
+      console.log('App.jsx: dosyalar DOLU, ilk dosya:', dosyalar[0]);
+    }
+  }, [dosyalar]);
+
   // Edit mode için state
   const [editingItem, setEditingItem] = useState(null);
 
-  // Debug/Test Panel kaldırıldı
-
-  // Kurum Hakedişi için mutations
-  const addInstitutionMutation = useAddData('kurumHakedisleri');
-  const updateInstitutionMutation = useUpdateData('kurumHakedisleri');
-  const deleteInstitutionMutation = useDeleteData('kurumHakedisleri');
-  const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
-
-  // Realtime sync: tüm ana tablolar için
   React.useEffect(() => {
     const tables = [
       'dosyalar',
@@ -463,7 +466,7 @@ const App = () => {
   };
 
   const excelIndir = () => {
-    exportAllData(dosyalar, kurumDosyalari, giderler);
+    exportAllData(dosyalar, giderler, kurumDosyalari);
     toast.success('Tüm veriler Excel olarak indirildi.');
   };
 
@@ -1624,7 +1627,7 @@ const App = () => {
       <Toaster position="bottom-right" richColors closeButton />
     </Layout>
     </>
-    );
+  );
 }
 
 export default App;

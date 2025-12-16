@@ -87,13 +87,20 @@ export function ImportDialog({ type, onSuccess }) {
 
   // 1. Şablon İndirme (Kullanıcı ne dolduracağını bilsin)
   const downloadTemplate = () => {
-    const ws = XLSX.utils.json_to_sheet(config.sampleData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sablon");
-    XLSX.writeFile(wb, `${type}_sablon.xlsx`);
-    toast.success("📥 Şablon indirildi!", {
-      description: "Excel'i açıp verilerinizi doldurun."
-    });
+    try {
+      const ws = XLSX.utils.json_to_sheet(config.sampleData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sablon");
+      // Dosya adını güvenli hale getir
+      const safeFileName = `${type}_sablon`.replace(/[^a-zA-Z0-9-_]/g, '_') + '.xlsx';
+      XLSX.writeFile(wb, safeFileName);
+      toast.success("📥 Şablon indirildi!", {
+        description: "Excel'i açıp verilerinizi doldurun."
+      });
+    } catch (err) {
+      toast.error('Excel şablonu indirilirken hata oluştu!');
+      console.error('Excel Download Error:', err);
+    }
   };
 
   // 2. Dosya Okuma ve İşleme

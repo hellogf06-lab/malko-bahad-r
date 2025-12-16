@@ -31,108 +31,99 @@ const ReportTemplates = ({ isOpen, onClose, data, settings }) => {
   };
 
   const generateMonthlyReport = () => {
-    const doc = new jsPDF();
-    
-    // Başlık
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('AYLIK FAALİYET RAPORU', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${settings?.firmName || 'Hukuk Bürosu'}`, 105, 30, { align: 'center' });
-    doc.text(`Dönem: ${dateRange.start} / ${dateRange.end}`, 105, 38, { align: 'center' });
-
-    let y = 50;
-
-    // Dosya Özeti
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DOSYA ÖZETİ', 14, y);
-    y += 10;
-
-    const filteredFiles = filterByDate(data.dosyalar || [], 'created_at');
-    doc.autoTable({
-      startY: y,
-      head: [['Dosya No', 'Müvekkil', 'Durum', 'Mahkeme']],
-      body: filteredFiles.map(d => [
-        d.dosya_no,
-        d.muvekkil_adi,
-        d.durum,
-        d.mahkeme
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [59, 130, 246] },
-    });
-
-    y = doc.lastAutoTable.finalY + 15;
-
-    // Gelir Özeti
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('GELİR ÖZETİ', 14, y);
-    y += 10;
-
-    const filteredKurum = filterByDate(data.kurumDosyalari || [], 'created_at');
-    const toplamGelir = filteredKurum.reduce((sum, k) => {
-      const amount = k.net_hakedis || k.ucret || 0;
-      const isPaid = k.odendi === true || k.odenmeDurumu === 'Ödendi';
-      return sum + (isPaid ? amount : 0);
-    }, 0);
-
-    doc.autoTable({
-      startY: y,
-      head: [['Kurum', 'Dosya No', 'Net Hakediş', 'Durum']],
-      body: filteredKurum.map(k => {
+    try {
+      const doc = new jsPDF();
+      // Başlık
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('AYLIK FAALİYET RAPORU', 105, 20, { align: 'center' });
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${settings?.firmName || 'Hukuk Bürosu'}`, 105, 30, { align: 'center' });
+      doc.text(`Dönem: ${dateRange.start} / ${dateRange.end}`, 105, 38, { align: 'center' });
+      let y = 50;
+      // Dosya Özeti
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DOSYA ÖZETİ', 14, y);
+      y += 10;
+      const filteredFiles = filterByDate(data.dosyalar || [], 'created_at');
+      doc.autoTable({
+        startY: y,
+        head: [['Dosya No', 'Müvekkil', 'Durum', 'Mahkeme']],
+        body: filteredFiles.map(d => [
+          d.dosya_no,
+          d.muvekkil_adi,
+          d.durum,
+          d.mahkeme
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+      y = doc.lastAutoTable.finalY + 15;
+      // Gelir Özeti
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('GELİR ÖZETİ', 14, y);
+      y += 10;
+      const filteredKurum = filterByDate(data.kurumDosyalari || [], 'created_at');
+      const toplamGelir = filteredKurum.reduce((sum, k) => {
         const amount = k.net_hakedis || k.ucret || 0;
         const isPaid = k.odendi === true || k.odenmeDurumu === 'Ödendi';
-        return [
-          k.kurum_adi || 'Kurum',
-          k.dosya_no || '-',
-          formatPara(amount),
-          isPaid ? 'Ödendi' : 'Bekliyor'
-        ];
-      }),
-      theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] },
-      foot: [['', '', formatPara(toplamGelir), '']],
-      footStyles: { fillColor: [209, 250, 229], textColor: [6, 78, 59], fontStyle: 'bold' },
-    });
-
-    y = doc.lastAutoTable.finalY + 15;
-
-    // Gider Özeti
-    if (y > 250) {
-      doc.addPage();
-      y = 20;
+        return sum + (isPaid ? amount : 0);
+      }, 0);
+      doc.autoTable({
+        startY: y,
+        head: [['Kurum', 'Dosya No', 'Net Hakediş', 'Durum']],
+        body: filteredKurum.map(k => {
+          const amount = k.net_hakedis || k.ucret || 0;
+          const isPaid = k.odendi === true || k.odenmeDurumu === 'Ödendi';
+          return [
+            k.kurum_adi || 'Kurum',
+            k.dosya_no || '-',
+            formatPara(amount),
+            isPaid ? 'Ödendi' : 'Bekliyor'
+          ];
+        }),
+        theme: 'striped',
+        headStyles: { fillColor: [16, 185, 129] },
+        foot: [['', '', formatPara(toplamGelir), '']],
+        footStyles: { fillColor: [209, 250, 229], textColor: [6, 78, 59], fontStyle: 'bold' },
+      });
+      y = doc.lastAutoTable.finalY + 15;
+      // Gider Özeti
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('GİDER ÖZETİ', 14, y);
+      y += 10;
+      const filteredGider = filterByDate(data.giderler || [], 'tarih');
+      const toplamGider = filteredGider.reduce((sum, g) => sum + (g.tutar || 0), 0);
+      doc.autoTable({
+        startY: y,
+        head: [['Kategori', 'Açıklama', 'Tutar', 'Tarih']],
+        body: filteredGider.map(g => [
+          g.kategori,
+          g.aciklama,
+          formatPara(g.tutar),
+          new Date(g.tarih).toLocaleDateString('tr-TR')
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [239, 68, 68] },
+        foot: [['', '', formatPara(toplamGider), '']],
+        footStyles: { fillColor: [254, 226, 226], textColor: [127, 29, 29], fontStyle: 'bold' },
+      });
+      // Dosya adını güvenli hale getir
+      const safeFileName = `aylik_rapor_${dateRange.start}_${dateRange.end}`.replace(/[^a-zA-Z0-9-_]/g, '_') + '.pdf';
+      doc.save(safeFileName);
+      toast.success('Aylık rapor oluşturuldu!', { icon: '📄' });
+    } catch (err) {
+      toast.error('PDF oluşturulurken hata oluştu!');
+      console.error('PDF Error:', err);
     }
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('GİDER ÖZETİ', 14, y);
-    y += 10;
-
-    const filteredGider = filterByDate(data.giderler || [], 'tarih');
-    const toplamGider = filteredGider.reduce((sum, g) => sum + (g.tutar || 0), 0);
-
-    doc.autoTable({
-      startY: y,
-      head: [['Kategori', 'Açıklama', 'Tutar', 'Tarih']],
-      body: filteredGider.map(g => [
-        g.kategori,
-        g.aciklama,
-        formatPara(g.tutar),
-        new Date(g.tarih).toLocaleDateString('tr-TR')
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [239, 68, 68] },
-      foot: [['', '', formatPara(toplamGider), '']],
-      footStyles: { fillColor: [254, 226, 226], textColor: [127, 29, 29], fontStyle: 'bold' },
-    });
-
-    // Kaydet
-    doc.save(`aylik_rapor_${dateRange.start}_${dateRange.end}.pdf`);
-    toast.success('Aylık rapor oluşturuldu!', { icon: '📄' });
   };
 
   const generateAnnualReport = () => {

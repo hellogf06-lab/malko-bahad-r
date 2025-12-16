@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent } from './ui/card';
 import { COLORS } from '../utils/constants';
 import { TrendingUp, TrendingDown, Clock, DollarSign } from 'lucide-react';
+import { formatPara, sayiyiYaziyaCevir } from '../utils/formatters';
 
 const SummaryCard = ({ title, value, type, subValue, subLabel }) => {
     const colors = type === 'income' ? COLORS.income : type === 'expense' ? COLORS.expense : type === 'pending' ? COLORS.pending : COLORS.profit;
@@ -52,15 +53,18 @@ const SummaryCard = ({ title, value, type, subValue, subLabel }) => {
                         <p 
                             className={`text-3xl font-extrabold tracking-tight group-hover:scale-105 transition-transform duration-300 ${textClasses[type]}`}
                         >
-                            {value}
+                            {formatPara(value)}
                         </p>
+                        <div className="text-xs font-medium text-gray-400 mt-1 italic border-t border-gray-200/50 pt-1">
+                            {sayiyiYaziyaCevir(Number(value))}
+                        </div>
                         {subValue > 0 && (
                             <div className="flex items-center gap-1.5 text-xs pt-2">
                                 <span className="font-semibold text-gray-500 dark:text-gray-400">{subLabel}:</span>
                                 <span 
                                     className={`font-bold px-2 py-1 rounded-full ${textClasses[type]} ${iconBgClasses[type]}`}
                                 >
-                                    {subValue}
+                                    {formatPara(subValue)}
                                 </span>
                             </div>
                         )}
