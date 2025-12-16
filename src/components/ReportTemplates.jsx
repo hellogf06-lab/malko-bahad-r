@@ -377,6 +377,7 @@ const ReportTemplates = ({ isOpen, onClose, data, settings }) => {
                   <p className="text-sm text-gray-600 mb-4">{template.description}</p>
                   <Button
                     className={`w-full ${colors.btn} text-white`}
+                    onClick={(e) => { e.stopPropagation(); template.action(); }}
                   >
                     <Download size={16} className="mr-2" />
                     Rapor Oluştur
