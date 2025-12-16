@@ -314,6 +314,8 @@ const App = () => {
     const addExpenseMutation = useAddData('giderler');
     const updateExpenseMutation = useUpdateData('giderler');
     const deleteExpenseMutation = useDeleteData('giderler');
+    // Eksik olan tanım eklendi:
+    const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
     // --- HESAPLAMALAR ---
     const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
     const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
