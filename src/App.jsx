@@ -1,3 +1,5 @@
+// ...existing code...
+// (Yalnızca aşağıdaki App fonksiyonu ve export default App kalacak)
 // Yardımcı: Nesne içinde arama yapan fonksiyon
 function searchInObject(obj, searchTerm) {
   if (!obj || typeof obj !== 'object') return false;
@@ -56,6 +58,8 @@ import * as XLSX from 'xlsx';
 // Components
 import Header from './components/Header';
 import Layout from './components/Layout';
+import { PeriodProvider } from './contexts/PeriodContext';
+import { PeriodSelector } from './components/PeriodSelector';
 import Modal from './components/Modal';
 import RadixModal from './components/ui/RadixModal';
 import Alert from './components/Alert';
@@ -80,6 +84,8 @@ import SettingsPanel from './components/SettingsPanel';
 import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import NotificationCenter from './components/NotificationCenter';
 import { Toaster, toast } from 'sonner';
+import { MonthlyChart } from "./components/MonthlyChart";
+import { useFilteredFinancialData } from "./hooks/useFilteredFinancialData";
 
 // Form Components
 import FileForm from './components/forms/FileForm';
@@ -100,6 +106,11 @@ import { exportAllData } from './utils/excelExport.js';
 
 
 const App = () => {
+      // Dosya silme için React Query mutation
+      const deleteFileMutation = useDeleteData('dosyalar');
+    // Dosya ekleme/güncelleme için React Query mutationları
+    const addFileMutation = useAddData('dosyalar');
+    const updateFileMutation = useUpdateData('dosyalar');
   // React Query ile veri çekme
   const {
     dosyalar,
@@ -112,16 +123,28 @@ const App = () => {
     error
   } = useAllDataQueries();
 
-  // DEBUG: dosyalar dizisi geliyor mu?
+  // Seçilen periyoda göre filtrelenmiş veriler
+  const filtered = useFilteredFinancialData({ dosyalar, kurumDosyalari, giderler, kurumMasraflari, takipMasraflari });
+
+  // Filtreli verilerle hesaplamalar
+  const hesaplamalar = useCalculations(
+    filtered.dosyalar,
+    filtered.kurumDosyalar,
+    filtered.kurumMasraflari,
+    filtered.giderler,
+    filtered.takipMasraflari
+  );
+
+  // DEBUG: filtreli dosyalar dizisi geliyor mu?
   React.useEffect(() => {
-    if (!dosyalar) {
+    if (!filtered.dosyalar) {
       console.log('App.jsx: dosyalar değişkeni YOK veya undefined');
-    } else if (Array.isArray(dosyalar) && dosyalar.length === 0) {
+    } else if (Array.isArray(filtered.dosyalar) && filtered.dosyalar.length === 0) {
       console.log('App.jsx: dosyalar BOŞ dizi');
     } else {
-      console.log('App.jsx: dosyalar DOLU, ilk dosya:', dosyalar[0]);
+      console.log('App.jsx: dosyalar DOLU, ilk dosya:', filtered.dosyalar[0]);
     }
-  }, [dosyalar]);
+  }, [filtered.dosyalar]);
 
   // Edit mode için state
   const [editingItem, setEditingItem] = useState(null);
@@ -317,7 +340,7 @@ const App = () => {
     // Eksik olan tanım eklendi:
     const toggleInstitutionMutation = useTogglePaid('kurumHakedisleri');
     // --- HESAPLAMALAR ---
-    const hesaplamalar = useCalculations(dosyalar, kurumDosyalari, kurumMasraflari, giderler, takipMasraflari);
+    // (Artık hesaplamalar yukarıda filtreli verilerle tanımlı)
     const { generatePDFReport } = usePDFExport(hesaplamalar, dosyalar, giderler, settings, setAlert);
     // Bildirim kontrolü - akıllı bildirimler
     useEffect(() => {
@@ -500,7 +523,7 @@ const App = () => {
   }
   // Kullanıcı ve Supabase user_id debug paneli
   const debugUserIdPanel = (
-    <div style={{position:'fixed',bottom:0,right:0,zIndex:9999,background:'#fff',color:'#222',padding:12,border:'2px solid #888',borderRadius:8,fontSize:13,boxShadow:'0 2px 8px #0002'}}>
+    <div style={{position:'fixed',bottom:80,right:24,zIndex:9999,background:'#fff',color:'#222',padding:12,border:'2px solid #888',borderRadius:8,fontSize:13,boxShadow:'0 2px 8px #0002'}}>
       <div><b>Aktif Kullanıcı user_id:</b> <span style={{color:'#0070f3'}}>{user?.id || '-'}</span></div>
       <div><b>Supabase kurumDosyalari user_id'leri:</b></div>
       <ul style={{maxHeight:80,overflow:'auto',margin:0,paddingLeft:16}}>
@@ -514,6 +537,9 @@ const App = () => {
   );
   return (
     <>
+      <div className="w-full flex justify-center bg-white dark:bg-gray-900 z-50 sticky top-0 shadow-sm py-2 mb-2">
+        <PeriodSelector />
+      </div>
       <Header />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {debugUserIdPanel}
@@ -768,22 +794,11 @@ const App = () => {
                                                 <TableCell className="text-center">
                                                     <button onClick={() => {
                                                       if (window.confirm('Bu kurum masrafı silinsin mi?')) {
-                                                        console.log('Silinecek kurum masrafı id:', m.id);
-                                                        console.log('deleteInstitutionExpenseMutation.mutate typeof:', typeof deleteInstitutionExpenseMutation.mutate);
                                                         if (typeof deleteInstitutionExpenseMutation.mutate !== 'function') {
                                                           alert('Silme fonksiyonu bulunamadı!');
                                                           return;
                                                         }
-                                                        deleteInstitutionExpenseMutation.mutate(m.id, {
-                                                          onError: (error) => {
-                                                            console.error('Silme işlemi HATA:', error);
-                                                            alert('Silme işlemi başarısız: ' + (error?.message || 'Bilinmeyen hata'));
-                                                          },
-                                                          onSuccess: (data) => {
-                                                            console.log('Silme işlemi BAŞARILI, dönen veri:', data);
-                                                            alert('Kurum masrafı başarıyla silindi.');
-                                                          }
-                                                        });
+                                                        deleteInstitutionExpenseMutation.mutate(m.id);
                                                       }
                                                     }} className="text-red-300 hover:text-red-600 transition-colors">
                                                         <Trash2 size={16}/>
@@ -1027,14 +1042,23 @@ const App = () => {
 
           {/* DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="flex flex-col gap-6">
+            <div className="space-y-6 animate-in fade-in">
               <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
                 <KPICard title="Net Kâr (Kasa)" value={formatPara(hesaplamalar.netKar, settings.currency)} icon={TrendingUp} color={hesaplamalar.netKar >= 0 ? "bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-50 text-red-800 border-red-200"} sub="Sadece Kasaya Girenler" />
                 <KPICard title="Reel Gelir" value={formatPara(hesaplamalar.toplamReelGelir, settings.currency)} icon={DollarSign} color="bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 border-blue-200" sub="Tahsil Edilenler" />
                 <KPICard title="Bekleyen Alacak" value={formatPara(hesaplamalar.kurumBekleyenAlacak, settings.currency)} icon={Clock} color="bg-gradient-to-br from-orange-50 to-orange-100 text-orange-800 border-orange-200" sub="Kurum Hakedişleri" />
                 <KPICard title="İade Alınan Masraf" value={formatPara(hesaplamalar.toplamIade, settings.currency)} icon={RefreshCw} color="bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-800 border-indigo-200" sub="Kasaya Geri Giren" />
               </div>
-              
+
+              {/* YENİ AYLIK GRAFİK */}
+              <MonthlyChart 
+                dosyalar={filtered.dosyalar}
+                kurumDosyalari={filtered.kurumDosyalar}
+                giderler={filtered.giderler}
+                kurumMasraflari={filtered.kurumMasraflari}
+                takipMasraflari={filtered.takipMasraflari}
+              />
+
               <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6">
                 <SimpleBarChart data={hesaplamalar.chartData} title="Nakit Akışı (Cash Flow)" />
                 <PieChart 
@@ -1048,7 +1072,7 @@ const App = () => {
               </div>
 
               <HearingReminders dosyalar={dosyalar} />
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1632,4 +1656,10 @@ const App = () => {
   );
 }
 
-export default App;
+export default function WrappedApp(props) {
+  return (
+    <PeriodProvider>
+      <App {...props} />
+    </PeriodProvider>
+  );
+}

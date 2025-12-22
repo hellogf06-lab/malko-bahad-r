@@ -7,6 +7,11 @@ const FileForm = ({ onSubmit, initialData = null, onCancel }) => {
     defaultValues: initialData || {
       dosya_no: '',
       muvekkil_adi: '',
+      mahkeme_adi: '',
+      esas_no: '',
+      dosya_durumu: '',
+      dosya_asamasi: '',
+      son_degisim_tarihi: new Date().toISOString().split('T')[0],
       tahsil_edilen: 0,
       tahsil_edilecek: 0,
       notes: ''
@@ -17,7 +22,8 @@ const FileForm = ({ onSubmit, initialData = null, onCancel }) => {
     onSubmit({
       ...data,
       tahsil_edilen: parseFloat(data.tahsil_edilen) || 0,
-      tahsil_edilecek: parseFloat(data.tahsil_edilecek) || 0
+      tahsil_edilecek: parseFloat(data.tahsil_edilecek) || 0,
+      son_degisim_tarihi: data.son_degisim_tarihi || new Date().toISOString().split('T')[0]
     });
     reset();
   };
@@ -30,7 +36,6 @@ const FileForm = ({ onSubmit, initialData = null, onCancel }) => {
         <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-4">
           📁 Dosya Bilgileri
         </h3>
-        
         <div className="grid grid-cols-2 gap-4">
           {/* Dosya No */}
           <div>
@@ -52,7 +57,6 @@ const FileForm = ({ onSubmit, initialData = null, onCancel }) => {
               <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.dosya_no.message}</p>
             )}
           </div>
-
           {/* Müvekkil Adı */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -71,6 +75,84 @@ const FileForm = ({ onSubmit, initialData = null, onCancel }) => {
             />
             {errors.muvekkil_adi && (
               <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.muvekkil_adi.message}</p>
+            )}
+          </div>
+          {/* Mahkeme Adı */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Mahkeme Adı
+            </label>
+            <input
+              type="text"
+              {...register('mahkeme_adi', { maxLength: { value: 100, message: 'En fazla 100 karakter' } })}
+              placeholder="Örn: İstanbul 5. Asliye Hukuk"
+              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.mahkeme_adi ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            {errors.mahkeme_adi && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.mahkeme_adi.message}</p>
+            )}
+          </div>
+          {/* Esas No */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Esas No
+            </label>
+            <input
+              type="text"
+              {...register('esas_no', { maxLength: { value: 50, message: 'En fazla 50 karakter' } })}
+              placeholder="Örn: 2024/123 E."
+              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.esas_no ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            {errors.esas_no && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.esas_no.message}</p>
+            )}
+          </div>
+          {/* Dosya Durumu */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Dosya Durumu
+            </label>
+            <select
+              {...register('dosya_durumu')}
+              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.dosya_durumu ? 'border-red-500' : 'border-gray-300'}`}
+            >
+              <option value="">Seçiniz</option>
+              <option value="acik">Açık</option>
+              <option value="kapali">Kapalı</option>
+              <option value="takipte">Takipte</option>
+              <option value="tasfiye">Tasfiye</option>
+            </select>
+            {errors.dosya_durumu && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.dosya_durumu.message}</p>
+            )}
+          </div>
+          {/* Dosya Aşaması */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Dosya Aşaması
+            </label>
+            <input
+              type="text"
+              {...register('dosya_asamasi', { maxLength: { value: 100, message: 'En fazla 100 karakter' } })}
+              placeholder="Örn: Dava açıldı, keşif bekleniyor"
+              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.dosya_asamasi ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            {errors.dosya_asamasi && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.dosya_asamasi.message}</p>
+            )}
+          </div>
+          {/* Son Değişim Tarihi */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Son Değişim Tarihi
+            </label>
+            <input
+              type="date"
+              {...register('son_degisim_tarihi')}
+              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.son_degisim_tarihi ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            {errors.son_degisim_tarihi && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{errors.son_degisim_tarihi.message}</p>
             )}
           </div>
         </div>

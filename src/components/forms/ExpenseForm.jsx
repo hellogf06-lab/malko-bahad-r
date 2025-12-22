@@ -32,10 +32,18 @@ const ExpenseForm = ({ onSubmit, initialData = null, onCancel }) => {
   });
   const selectedCategory = watch('kategori');
 
+  // If editing, keep form in sync with initialData
+  React.useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    }
+  }, [initialData, reset]);
+
   const onFormSubmit = (data) => {
     onSubmit({
       ...data,
-      tutar: parseFloat(data.tutar) || 0
+      tutar: parseFloat(data.tutar) || 0,
+      id: data.id || (initialData && initialData.id) || undefined
     });
     reset();
   };
@@ -43,6 +51,10 @@ const ExpenseForm = ({ onSubmit, initialData = null, onCancel }) => {
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col gap-6">
       
+      {/* Hidden ID for edit mode */}
+      {initialData && initialData.id && (
+        <input type="hidden" {...register('id')} />
+      )}
       {/* Grup 1: Temel Bilgiler */}
       <div className="pb-5 border-b-2 border-gray-200">
         <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-4">
